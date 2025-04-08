@@ -1,0 +1,132 @@
+#root {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 2rem;
+  text-align: center;
+}
+
+.logo {
+  height: 6em;
+  padding: 1.5em;
+  will-change: filter;
+  transition: filter 300ms;
+}
+.logo:hover {
+  filter: drop-shadow(0 0 2em #646cffaa);
+}
+.logo.react:hover {
+  filter: drop-shadow(0 0 2em #61dafbaa);
+}
+
+@keyframes logo-spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  a:nth-of-type(2) .logo {
+    animation: logo-spin infinite 20s linear;
+  }
+}
+
+.card {
+  padding: 2em;
+}
+
+.read-the-docs {
+  color: #888;
+}
+
+/* App-specific styles */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+}
+
+/* Chat message styles */
+.message-bubble {
+  border-radius: 18px;
+  padding: 10px 15px;
+  max-width: 70%;
+  word-wrap: break-word;
+}
+
+.message-bubble.sent {
+  background-color: #1976d2;
+  color: white;
+  border-bottom-right-radius: 4px;
+}
+
+.message-bubble.received {
+  background-color: #f1f1f1;
+  color: #333;
+  border-bottom-left-radius: 4px;
+}
+
+/* Contact list styles */
+.contact-item {
+  transition: background-color 0.2s;
+}
+
+.contact-item:hover {
+  background-color: rgba(0, 0, 0, 0.04);
+}
+
+.contact-item.selected {
+  background-color: rgba(25, 118, 210, 0.08);
+}
+
+/* Notice styles */
+.notice-item {
+  border-left: 4px solid #1976d2;
+  margin-bottom: 8px;
+  transition: transform 0.2s;
+}
+
+.notice-item:hover {
+  transform: translateX(4px);
+}
+
+/* Profile menu styles */
+.profile-menu {
+  min-width: 250px;
+}
+
+/* Tab styles */
+.custom-tab {
+  text-transform: none;
+  font-weight: 500;
+}
+
+/* Search bar styles */
+.search-bar {
+  border-radius: 20px;
+  background-color: #f5f5f5;
+}
+
+/* Message input styles */
+.message-input {
+  border-radius: 24px;
+  background-color: #f5f5f5;
+}
+
+/* Animation for new messages */
+@keyframes slideIn {
+  from {
+    opacity: 0;
+    transform: translateY(20px);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.new-message {
+  animation: slideIn 0.3s ease-out;
+}
