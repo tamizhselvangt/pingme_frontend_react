@@ -1,6 +1,11 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
+import { useSnackbar } from 'notistack';
+
+
+
+
 const ChatContext = createContext();
 
 export const useChat = () => useContext(ChatContext);
@@ -9,12 +14,14 @@ export const ChatProvider = ({ children }) => {
   const { currentUser } = useAuth();
   const [contacts, setContacts] = useState([]);
   const [messages, setMessages] = useState({});
-  const [activeChat, setActiveChat] = useState(null);
+  const [activeChatId, setActiveChatId] = useState(null);
   const [activeTab, setActiveTab] = useState('personal'); // personal, department, groups, noticeboard
   const [notices, setNotices] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
 
-  // Mock data for contacts
+  const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+
+  // Fetch All Users for contacts
   useEffect(() => {
     const fetchUsers = async () => {
       try {
@@ -25,7 +32,7 @@ export const ChatProvider = ({ children }) => {
 
           // Optional: filter or categorize based on activeTab here
           const formattedContacts = users
-            .filter(user => user.id !== currentUser.id) // avoid showing current user as contact
+            .filter(user => user.name !== currentUser.name) // avoid showing current user as contact
             .map(user => ({
               id: user.id.toString(),
               name: user.name,
@@ -55,50 +62,121 @@ export const ChatProvider = ({ children }) => {
     }
   }, [activeTab]);
 
-  // Mock data for messages
+
+  //Fetch messages from backend
   useEffect(() => {
-    if (activeChat) {
-      const mockMessages = {
-        '1': [
-          { id: '1', sender: '1', text: 'Hi there!', timestamp: '2023-04-08T10:00:00' },
-          { id: '2', sender: currentUser?.id, text: 'Hello! How are you?', timestamp: '2023-04-08T10:01:00' },
-          { id: '3', sender: '1', text: 'I\'m good, thanks!', timestamp: '2023-04-08T10:02:00' },
-        ],
-        '2': [
-          { id: '1', sender: '2', text: 'Can we meet tomorrow?', timestamp: '2023-04-07T15:00:00' },
-          { id: '2', sender: currentUser?.id, text: 'Sure, what time?', timestamp: '2023-04-07T15:05:00' },
-        ],
-        'dept1': [
-          { id: '1', sender: 'dept1', text: 'HR Announcement: New policy update', timestamp: '2023-04-06T09:00:00' },
-          { id: '2', sender: currentUser?.id, text: 'Thanks for the update', timestamp: '2023-04-06T09:30:00' },
-        ],
-        'group1': [
-          { id: '1', sender: '1', text: 'Project update: Phase 1 complete', timestamp: '2023-04-05T14:00:00' },
-          { id: '2', sender: '2', text: 'Great work everyone!', timestamp: '2023-04-05T14:05:00' },
-          { id: '3', sender: currentUser?.id, text: 'When is the next phase starting?', timestamp: '2023-04-05T14:10:00' },
-        ],
-      };
-      setMessages(mockMessages);
-    }
-  }, [activeChat, currentUser]);
-
-  const sendMessage = (text, file = null, voice = null) => {
-    if (!activeChat || !currentUser) return;
-
-    const newMessage = {
-      id: Date.now().toString(),
-      sender: currentUser.id,
-      text,
-      file,
-      voice,
-      timestamp: new Date().toISOString(),
+    const fetchMessages = async () => {
+      if (!activeChatId || !currentUser?.id) return;
+      console.log('Fetching messages for user:', currentUser.id, 'and chat:', activeChatId);
+      try {
+        const response = await axios.get(`http://localhost:8080/api/messages/messages/${currentUser.id}/${activeChatId}`);
+        
+        console.log('Fetched messages:', response.data);
+        const fetchedMessages = response.data.map((msg) => ({
+          id: msg.id,
+          sender: msg.senderId,
+          text: msg.content,
+          timestamp: new Date(msg.createdAt * 1000), // Assuming it's in seconds
+          file: msg.mediaType?.startsWith('image') || msg.mediaType?.startsWith('video') ? {
+            name: msg.mediaType,
+            data: msg.mediaData
+          } : null,
+          voice: msg.mediaType?.startsWith('audio') ? {
+            duration: 'Audio message',
+            data: msg.mediaData
+          } : null
+        }));
+  
+        console.log('Fetched Converted messages:', fetchedMessages);
+        setMessages(prev => ({
+          ...prev,
+          [activeChatId]: fetchedMessages,
+        }));        
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+        enqueueSnackbar('Failed to fetch messages', { variant: 'error' });
+      }
     };
+  
+    fetchMessages();
+  }, [activeChatId, currentUser]);
+  
 
-    setMessages(prev => ({
-      ...prev,
-      [activeChat]: [...(prev[activeChat] || []), newMessage],
-    }));
+  const sendMessage = async (text, file = null, voice = null) => {
+    if (!activeChatId || !currentUser) return;
+  
+    // Only send to the /api/messages/send endpoint if it's a plain text message
+    if (text && !file && !voice) {
+      const payload = {
+        senderId: currentUser.id,
+        recipientId: activeChatId,
+        content: text,
+        mediaData: null,
+        mediaType: null,
+      };
+  
+      try {
+        const response = await axios.post('http://localhost:8080/api/messages/send', payload);
+  
+        if (response.status === 202) {
+          // console.log('Text message sent successfully:', response.data);
+          const msg = response.data;
+          const sentMessage = {
+            id: msg.id,
+            sender: msg.senderId,
+            text: msg.content,
+            timestamp: new Date(msg.timestamp * 1000), 
+            file: msg.mediaType?.startsWith('image') || msg.mediaType?.startsWith('video') ? {
+              name: msg.mediaType,
+              data: msg.mediaData
+            } : null,
+            voice: msg.mediaType?.startsWith('audio') ? {
+              duration: 'Audio message',
+              data: msg.mediaData
+            } : null
+          };
+          // Add the message to local state
+          setMessages(prev => ({
+            ...prev,
+            [activeChatId]: [...(prev[activeChatId] || []), sentMessage],
+          }));
+ 
+        } else {
+          console.warn('Unexpected response status:', response.status);
+          enqueueSnackbar('Failed to send text message', { variant: 'error' });
+        }
+      } catch (error) {
+        console.error('Failed to send text message:', error);
+        enqueueSnackbar('Failed to send text message', { variant: 'error' });
+      }
+      return;
+    }
+  
+    // If it's a media message (file or voice), handle with another endpoint
+    // You can handle that here:
+    if (file || voice) {
+      // Example placeholder for media upload logic
+      console.log('Send media message via different endpoint...');
+    }
   };
+  
+  // const sendMessage = (text, file = null, voice = null) => {
+  //   if (!activeChatId || !currentUser) return;
+
+  //   const newMessage = {
+  //     id: Date.now().toString(),
+  //     sender: currentUser.id,
+  //     text,
+  //     file,
+  //     voice,
+  //     timestamp: new Date().toISOString(),
+  //   };
+
+  //   setMessages(prev => ({
+  //     ...prev,
+  //     [activeChatId]: [...(prev[activeChatId] || []), newMessage],
+  //   }));
+  // };
 
   const filteredContacts = contacts.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -106,9 +184,9 @@ export const ChatProvider = ({ children }) => {
 
   const value = {
     contacts: filteredContacts,
-    messages: messages[activeChat] || [],
-    activeChat,
-    setActiveChat,
+    messages: messages[activeChatId] || [],
+    activeChatId,
+    setActiveChatId,
     activeTab,
     setActiveTab,
     notices,

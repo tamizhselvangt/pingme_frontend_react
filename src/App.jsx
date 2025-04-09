@@ -11,6 +11,9 @@ import PrivateRoute from './components/PrivateRoute';
 import './App.css';
 import axios from 'axios';
 import { GoogleOAuthProvider } from '@react-oauth/google';
+import { SnackbarProvider, useSnackbar } from 'notistack';
+
+
 // Create a theme
 const theme = createTheme({
   palette: {
@@ -34,6 +37,7 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
+      <SnackbarProvider>
       <GoogleOAuthProvider clientId='434373968635-vq13dntdtrnlop0tgavco86lepqc710l.apps.googleusercontent.com'>
         <Router>
           <AuthProvider>
@@ -51,10 +55,12 @@ function App() {
                   } 
                 />
               </Routes>
+   
             </ChatProvider>
           </AuthProvider>
         </Router>
       </GoogleOAuthProvider>
+      </SnackbarProvider>
     </ThemeProvider>
   );
 }

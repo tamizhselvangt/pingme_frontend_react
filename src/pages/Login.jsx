@@ -13,12 +13,14 @@ import GoogleIcon from '@mui/icons-material/Google';
 import GitHubIcon from '@mui/icons-material/GitHub';
 import ArrowBackIcon from '@mui/icons-material/ArrowBack';
 
+
 const Login = () => {
   const navigate = useNavigate();
   const { loginWithGoogle, loginWithGithub } = useAuth();
 
   const handleGoogleLogin = () => {
     loginWithGoogle();
+    navigate('/department-selection');  
     // After Google login, user will be redirected to department selection
     // The redirection will be handled in the AuthContext useEffect
   };

@@ -45,8 +45,8 @@ const Home = () => {
   const { 
     contacts, 
     messages, 
-    activeChat, 
-    setActiveChat, 
+    activeChatId, 
+    setActiveChatId, 
     activeTab, 
     setActiveTab, 
     notices, 
@@ -132,8 +132,8 @@ const Home = () => {
           <ListItem 
             key={contact.id} 
             button 
-            selected={activeChat === contact.id}
-            onClick={() => setActiveChat(contact.id)}
+            selected={activeChatId === contact.id}
+            onClick={() => setActiveChatId(contact.id)}
           >
             <ListItemAvatar>
               <Badge 
@@ -156,7 +156,7 @@ const Home = () => {
   };
 
   const renderMessages = () => {
-    if (!activeChat) {
+    if (!activeChatId) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
           <Typography variant="h6" color="text.secondary">
@@ -309,7 +309,7 @@ const Home = () => {
         <AppBar position="static" color="default" elevation={1}>
           <Toolbar>
             <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              {activeChat ? contacts.find(c => c.id === activeChat)?.name : 'Chat'}
+              {activeChatId ? contacts.find(c => c.id === activeChatId)?.name : 'Chat'}
             </Typography>
             <IconButton onClick={() => setShowNotices(true)}>
               <NotificationsIcon />

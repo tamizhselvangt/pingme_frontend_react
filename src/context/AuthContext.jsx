@@ -96,10 +96,28 @@ export const AuthProvider = ({ children }) => {
   };
 
   const logout = () => {
-    setCurrentUser(null);
+    signOut();
+  };
+
+  const signOut = async () => {
+    if(currentUser){
+    try {
+      const authData = {
+        name: currentUser.name,
+        email: currentUser.email,
+        profileImage: currentUser.photoURL
+      };
+      const response = await axios.post('http://localhost:8080/sign-out', authData);
+      console.log('Logout Success Response: ',response);
+      setCurrentUser(null);
     setUserType(null);
+    setMessages([]); // clear chat messages
     setUserDepartment(null);
     localStorage.removeItem('authToken');
+    } catch (error) {
+      console.error('Logout failed:', error);
+    }
+  }
   };
 
   useEffect(() => {
@@ -141,6 +159,7 @@ export const AuthProvider = ({ children }) => {
   const value = {
     currentUser,
     userType,
+    setCurrentUser,
     userDepartment,
     setUserDepartment,
     loginWithGoogle,

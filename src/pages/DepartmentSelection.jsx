@@ -16,7 +16,7 @@ import {
 
 const DepartmentSelection = () => {
   const navigate = useNavigate();
-  const { currentUser, setUserDepartment } = useAuth();
+  const { currentUser, setUserDepartment, setCurrentUser } = useAuth();
   const [departments, setDepartments] = useState([]);
   const [selectedDepartment, setSelectedDepartment] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -61,14 +61,21 @@ const DepartmentSelection = () => {
       };
 
       const response = await axios.post('http://localhost:8080/authenticate', authData);
-      
+      console.log('Authentication Response: ',response);
       // Store the authentication token or user data
       if (response.data && response.data.token) {
         localStorage.setItem('authToken', response.data.token);
       }
-      
+      const responseData = {
+        id: response.data.id,
+        name: response.data.name,
+        email: response.data.email,
+        profileImage: response.data.photoURL,
+        departmentId: response.data.departmentId
+      };
+      console.log('Authentication Response Data: ',responseData);
       // Update the user context with department info
-      setUserDepartment(selectedDepartment);
+      setCurrentUser(responseData);
       
       // Navigate to home page
       navigate('/home');
