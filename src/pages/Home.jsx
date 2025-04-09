@@ -131,7 +131,7 @@ const Home = () => {
         {contacts.map((contact) => (
           <ListItem 
             key={contact.id} 
-            button 
+            button={true}
             selected={activeChatId === contact.id}
             onClick={() => setActiveChatId(contact.id)}
           >

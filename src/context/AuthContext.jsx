@@ -1,6 +1,5 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
-import { jwtDecode } from "jwt-decode";
 import axios from 'axios';
 
 const AuthContext = createContext();

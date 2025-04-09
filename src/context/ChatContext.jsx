@@ -1,10 +1,10 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect, useRef } from 'react';
 import { useAuth } from './AuthContext';
 import axios from 'axios';
 import { useSnackbar } from 'notistack';
-
-
-
+import SockJS from 'sockjs-client/dist/sockjs';
+import { Client } from '@stomp/stompjs';
+import { showMessageNotification } from '../components/showMessageNotification';
 
 const ChatContext = createContext();
 
@@ -18,9 +18,57 @@ export const ChatProvider = ({ children }) => {
   const [activeTab, setActiveTab] = useState('personal'); // personal, department, groups, noticeboard
   const [notices, setNotices] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
+  const stompClientRef = useRef(null);
 
+  // Socket connection Handling
+useEffect(() => {
+    if (!currentUser) return;
+    const socket = new SockJS('http://localhost:8080/ws');
+    const stompClient = new Client({
+      webSocketFactory: () => socket,
+      reconnectDelay: 5000,
+      onConnect: () => {
+        console.log('Connected to WebSocket');
+        // Subscribe to personal message queue
+        stompClient.subscribe(`/user/${currentUser.id}/queue/messages`, (message) => {
+          const body = JSON.parse(message.body);
+          const incomingMessage = {
+            id: Date.now().toString(), // Optional unique ID
+            sender: body.senderId,
+            text: body.content,
+            timestamp: new Date(),
+            // Customize handling media if needed
+          };
+
+          const senderId = body.senderId;
+
+          setMessages((prev) => ({
+            ...prev,
+            [senderId]: [...(prev[senderId] || []), incomingMessage],
+          }));
+          if(senderId !== activeChatId){
+            const notification = {
+              name: body.username,
+              avatarUrl: body.profile
+            };
+            showMessageNotification(notification);
+          }
+        });
+      },
+      onStompError: (frame) => {
+        console.error('WebSocket error:', frame.headers['message']);
+      }
+    });
+
+    stompClient.activate();
+    stompClientRef.current = stompClient;
+
+    return () => {
+      stompClient.deactivate();
+    };
+  }, [currentUser]);
+  
   // Fetch All Users for contacts
   useEffect(() => {
     const fetchUsers = async () => {
@@ -67,11 +115,10 @@ export const ChatProvider = ({ children }) => {
   useEffect(() => {
     const fetchMessages = async () => {
       if (!activeChatId || !currentUser?.id) return;
-      console.log('Fetching messages for user:', currentUser.id, 'and chat:', activeChatId);
+    
       try {
         const response = await axios.get(`http://localhost:8080/api/messages/messages/${currentUser.id}/${activeChatId}`);
-        
-        console.log('Fetched messages:', response.data);
+      
         const fetchedMessages = response.data.map((msg) => ({
           id: msg.id,
           sender: msg.senderId,
@@ -86,8 +133,6 @@ export const ChatProvider = ({ children }) => {
             data: msg.mediaData
           } : null
         }));
-  
-        console.log('Fetched Converted messages:', fetchedMessages);
         setMessages(prev => ({
           ...prev,
           [activeChatId]: fetchedMessages,
@@ -97,11 +142,10 @@ export const ChatProvider = ({ children }) => {
         enqueueSnackbar('Failed to fetch messages', { variant: 'error' });
       }
     };
-  
+
     fetchMessages();
   }, [activeChatId, currentUser]);
   
-
   const sendMessage = async (text, file = null, voice = null) => {
     if (!activeChatId || !currentUser) return;
   

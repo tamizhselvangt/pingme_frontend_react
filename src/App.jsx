@@ -37,7 +37,13 @@ function App() {
   return (
     <ThemeProvider theme={theme}>
       <CssBaseline />
-      <SnackbarProvider>
+      <SnackbarProvider 
+        maxSnack={3}
+        anchorOrigin={{
+          vertical: 'top',
+          horizontal: 'right',
+        }}
+      >
       <GoogleOAuthProvider clientId='434373968635-vq13dntdtrnlop0tgavco86lepqc710l.apps.googleusercontent.com'>
         <Router>
           <AuthProvider>
