@@ -18,17 +18,17 @@ import { SnackbarProvider, useSnackbar } from 'notistack';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#1976d2',
+      main: '#EF4955',
     },
     secondary: {
-      main: '#dc004e',
+      main: '#8BBCB9',
+      light: '#E6F4F3',
     },
   },
   typography: {
     fontFamily: [
-      'Roboto',
-      'Arial',
-      'sans-serif',
+      'ClashGrotesk-Regular',
+      'GeneralSans-Regular'
     ].join(','),
   },
 });

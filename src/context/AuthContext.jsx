@@ -1,5 +1,6 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import { useGoogleLogin } from '@react-oauth/google';
+import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 
 const AuthContext = createContext();
@@ -12,7 +13,7 @@ export const AuthProvider = ({ children }) => {
   const [loading, setLoading] = useState(false);
   const [userType, setUserType] = useState(null);
   const [userDepartment, setUserDepartment] = useState(null);
-
+  const navigate = useNavigate();
   // Initiates Google Login
   const googleLogin = useGoogleLogin({
     onSuccess: (tokenResponse) => {
@@ -49,8 +50,9 @@ export const AuthProvider = ({ children }) => {
             photoURL: userData.picture,
           });
 
-          // Example logic: decide user type
+          // decide user type
           setUserType('user'); // Or set based on email domain/role
+          navigate('/department-selection');
 
         } catch (err) {
           console.error('Error fetching Google user info:', err);
@@ -77,6 +79,7 @@ export const AuthProvider = ({ children }) => {
       photoURL: 'https://via.placeholder.com/150',
     });
     setUserType('user');
+    navigate('/department-selection');
   };
 
   const adminLogin = (email, password) => {

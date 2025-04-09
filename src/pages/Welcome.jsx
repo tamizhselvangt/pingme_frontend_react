@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
+
+
 import { 
   Box, 
   Button, 
@@ -8,10 +10,14 @@ import {
   Typography, 
   Container,
   TextField,
-  Alert
+  Alert,
+  Grid
 } from '@mui/material';
 import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
 import PersonIcon from '@mui/icons-material/Person';
+import { PiChalkboardTeacherDuotone } from "react-icons/pi";
+import { PiStudentDuotone } from "react-icons/pi";
+import pingmeImage from '../assets/pingme.png';
 
 const Welcome = () => {
   const navigate = useNavigate();
@@ -31,7 +37,17 @@ const Welcome = () => {
   };
 
   return (
-    <Container maxWidth="sm">
+    <Container   maxWidth={false}
+    disableGutters
+    sx={{
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1200, // higher than most elements
+      backgroundColor: '#EEEDE6',
+      padding: 2,
+    }}>
       <Box
         sx={{
           minHeight: '100vh',
@@ -41,29 +57,84 @@ const Welcome = () => {
           alignItems: 'center',
         }}
       >
-        <Typography variant="h3" component="h1" gutterBottom align="center">
-          Welcome to PingMe
-        </Typography>
-        <Typography variant="h6" gutterBottom align="center" color="text.secondary">
+        <Grid container spacing={4} alignItems="center" justifyContent="center">
+            <Grid item xs={12} md={6}>
+    <img src={pingmeImage} alt="PingMe Logo" style={{ width: '100%', maxWidth: 150 }} />
+  </Grid>
+  <Grid item xs={12} md={6}>
+    <Typography variant="h3" component="h1" align="center" fontFamily="ClashGrotesk-Semibold"
+    sx={{
+      background: 'linear-gradient(90deg, #8BBCB9, #EF4955, #ff8a00)',
+      WebkitBackgroundClip: 'text',
+      WebkitTextFillColor: 'transparent',
+      fontWeight: 600,
+    }}
+    >
+      Welcome to PingMe
+    </Typography>
+  </Grid>
+</Grid>
+        <Typography variant="h5" gutterBottom align="center" color="text.secondary"
+        sx={{
+          fontFamily: 'ClashGrotesk-Semibold',
+        
+          textAlign: 'center',
+          background: 'linear-gradient(135deg, #a3a3a3,rgb(205, 205, 205),#a3a3a3,rgb(206, 205, 205),#a3a3a3)',
+          WebkitBackgroundClip: 'text',
+        
+          WebkitTextFillColor: 'transparent',
+        }}
+        >
           Choose your login type
         </Typography>
 
         {!showAdminLogin ? (
           <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
-            <Card sx={{ width: 200, cursor: 'pointer' }} onClick={() => setShowAdminLogin(true)}>
+            <Card sx={{
+    width: 200,
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    '&:hover': {
+      transform: 'scale(1.05)',
+      boxShadow: 6,
+      backgroundColor: '#F6FAFD',
+    },
+  }}
+   onClick={() => setShowAdminLogin(true)}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <AdminPanelSettingsIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-                <Typography variant="h6">Admin Login</Typography>
+               
+                <PiChalkboardTeacherDuotone  style={{
+                        fontSize: 60,
+                        color: '#1976d2', // manually set to match theme
+                        marginBottom: '16px'
+                    }}/>
+                <Typography variant="h6" fontFamily="ClashGrotesk-Medium">Admin Login</Typography>
               </CardContent>
             </Card>
-            <Card sx={{ width: 200, cursor: 'pointer' }} onClick={() => navigate('/login')}>
+            <Card  sx={{
+    width: 200,
+    cursor: 'pointer',
+    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+    '&:hover': {
+      transform: 'scale(1.05)',
+      boxShadow: 6,
+      backgroundColor: '#f0f4f3',
+    },
+  }} onClick={() => navigate('/login')}>
               <CardContent sx={{ textAlign: 'center' }}>
-                <PersonIcon sx={{ fontSize: 60, color: 'primary.main', mb: 2 }} />
-                <Typography variant="h6">User Login</Typography>
+              
+              <PiStudentDuotone style={{
+                        fontSize: 60,
+                        color: '#8BBCB9', // manually set to match theme
+                        marginBottom: '16px'
+                    }}/>
+                <Typography variant="h6" fontFamily="ClashGrotesk-Medium">User Login</Typography>
               </CardContent>
             </Card>
           </Box>
         ) : (
+          <Container
+          maxWidth='sm'  >
           <Card sx={{ width: '100%', mt: 4 }}>
             <CardContent>
               <Typography variant="h5" gutterBottom align="center">
@@ -99,8 +170,10 @@ const Welcome = () => {
               </form>
             </CardContent>
           </Card>
+          </Container>
         )}
       </Box>
+      
     </Container>
   );
 };
