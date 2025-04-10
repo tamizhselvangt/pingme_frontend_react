@@ -86,7 +86,8 @@ const Login = () => {
                 fontFamily: 'ClashGrotesk-Medium', // your custom font
                 fontSize: '1rem', // optional
                 fontWeight: 500,  // optional
-                borderColor: 'primary.main', // base border color
+                borderColor: 'primary.red', // base border color
+                color: 'primary.red',
                 '&:hover': {
                   borderColor: 'secondary.main', 
                   backgroundColor: 'secondary.light',
@@ -112,7 +113,8 @@ const Login = () => {
                 fontFamily: 'ClashGrotesk-Medium', // your custom font
                 fontSize: '1rem', // optional
                 fontWeight: 500,  // optional
-                borderColor: 'primary.main', // base border color
+                color: 'primary.red',
+                borderColor: 'primary.red', // base border color
                 '&:hover': {
                   borderColor: 'secondary.main', 
                   backgroundColor: 'secondary.light',

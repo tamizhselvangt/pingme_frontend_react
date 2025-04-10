@@ -23,7 +23,9 @@ import {
   Menu,
   MenuItem,
   Paper,
-  InputAdornment
+  InputAdornment,
+  Button,
+  Stack
 } from '@mui/material';
 import {
   Send as SendIcon,
@@ -36,8 +38,21 @@ import {
   Group as GroupIcon,
   Business as BusinessIcon,
   Campaign as CampaignIcon,
-  Logout as LogoutIcon
+  Logout as LogoutIcon,
+  Close as CloseIcon,
+  Chat as ChatIcon
 } from '@mui/icons-material';
+import { PiUserListDuotone } from "react-icons/pi";
+import { BsLayoutSidebarInsetReverse } from "react-icons/bs";
+import { HiOutlineUser } from "react-icons/hi2";
+import { TbMessageFilled } from "react-icons/tb";
+import { TbBuildingBridge2 } from "react-icons/tb";
+import { GrGroup } from "react-icons/gr";
+import { IoIosSend } from "react-icons/io";
+import { PiNotificationDuotone } from "react-icons/pi";
+import { PiWaveformBold } from "react-icons/pi";
+import { CgAttachment } from "react-icons/cg";
+import { LuUserRoundSearch } from "react-icons/lu";
 
 const Home = () => {
   const navigate = useNavigate();
@@ -82,7 +97,7 @@ const Home = () => {
   };
 
   const handleSendMessage = (e) => {
-    e.preventDefault();
+    if (e) e.preventDefault();
     if (messageText.trim()) {
       sendMessage(messageText);
       setMessageText('');
@@ -113,12 +128,18 @@ const Home = () => {
               sx={{ 
                 borderLeft: '4px solid',
                 borderColor: 'primary.main',
-                mb: 1
+                mb: 1,
+                borderRadius: 1,
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.07)'
+                }
               }}
             >
               <ListItemText 
                 primary={notice.title} 
-                secondary={`${notice.date} - ${notice.author}`} 
+                secondary={`${notice.date} - ${notice.author}`}
+                primaryTypographyProps={{ color: 'white' }}
+                secondaryTypographyProps={{ color: 'rgba(255,255,255,0.6)' }}
               />
             </ListItem>
           ))}
@@ -134,6 +155,18 @@ const Home = () => {
             button={true}
             selected={activeChatId === contact.id}
             onClick={() => setActiveChatId(contact.id)}
+            sx={{
+              borderRadius: 1,
+              '&.Mui-selected': {
+                bgcolor: 'rgba(25, 118, 210, 0.2)',
+                '&:hover': {
+                  bgcolor: 'rgba(25, 118, 210, 0.3)'
+                }
+              },
+              '&:hover': {
+                bgcolor: 'rgba(255,255,255,0.07)'
+              }
+            }}
           >
             <ListItemAvatar>
               <Badge 
@@ -147,7 +180,9 @@ const Home = () => {
             </ListItemAvatar>
             <ListItemText 
               primary={contact.name} 
-              secondary={contact.members ? `${contact.members} members` : contact.status} 
+              secondary={contact.members ? `${contact.members} members` : contact.status}
+              primaryTypographyProps={{ color: 'white' }}
+              secondaryTypographyProps={{ color: 'rgba(255,255,255,0.6)' }}
             />
           </ListItem>
         ))}
@@ -158,17 +193,40 @@ const Home = () => {
   const renderMessages = () => {
     if (!activeChatId) {
       return (
-        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%' }}>
-          <Typography variant="h6" color="text.secondary">
-            Select a conversation to start chatting
-          </Typography>
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'rgba(255,255,255,0.5)',
+          bgcolor: '#FCFBFC',
+         }}> 
+          <Box sx={{ textAlign: 'center' }}>
+            {/* <ChatIcon sx={{ fontSize: 60, mb: 2, opacity: 0.5 , color: 'rgba(30, 30, 30, 0.64)' }} /> */}
+            <TbMessageFilled style={{ fontSize: 80, mb: 2, opacity: 0.5 , color: 'rgba(30, 30, 30, 0.64)' }}/>
+            <Typography variant="h6" sx={{ color: 'rgba(30, 30, 30, 0.64)' }}>
+              Select a conversation to start chatting
+            </Typography>
+          </Box>
         </Box>
       );
     }
 
     return (
-      <Box sx={{ display: 'flex', flexDirection: 'column', height: '100%' }}>
-        <Box sx={{ flexGrow: 1, overflow: 'auto', p: 2 }}>
+      <Box
+      elevation={4}
+      sx={{ display: 'flex', flexDirection: 'column', height: '100%',
+          overflowX: 'auto',
+          bgcolor: '#FCFBFC',
+          borderLeft: '2px solid rgba(154, 154, 154, 0.3)',
+          borderRight: '2px solid rgba(154, 154, 154, 0.3)',
+          }}>
+        <Box sx={{
+              flexGrow: 1, overflow: 'auto',
+              p: 2,
+              overflowX: 'auto',
+              whiteSpace: 'nowrap',
+              '&::-webkit-scrollbar': {
+               display: 'none',
+               },
+              '-ms-overflow-style': 'none', // for Internet Explorer and Edge
+              'scrollbar-width': 'none', // for Firefox
+         }}>
           {messages.map((message) => {
             const isOwnMessage = message.sender === currentUser?.id;
             return (
@@ -184,8 +242,9 @@ const Home = () => {
                   sx={{
                     p: 2,
                     maxWidth: '70%',
-                    bgcolor: isOwnMessage ? 'primary.main' : 'grey.100',
-                    color: isOwnMessage ? 'white' : 'text.primary',
+                    borderRadius: 2,
+                    bgcolor: isOwnMessage ? 'primary.main' : 'rgba(255,255,255,0.1)',
+                    color: 'black',
                   }}
                 >
                   {message.text && <Typography>{message.text}</Typography>}
@@ -211,28 +270,51 @@ const Home = () => {
           <div ref={messagesEndRef} />
         </Box>
         
-        <Box component="form" onSubmit={handleSendMessage} sx={{ p: 2, bgcolor: 'background.paper' }}>
-          <TextField
-            fullWidth
-            placeholder="Type a message"
-            value={messageText}
-            onChange={(e) => setMessageText(e.target.value)}
-            InputProps={{
-              endAdornment: (
-                <InputAdornment position="end">
-                  <IconButton onClick={handleFileUpload}>
-                    <AttachFileIcon />
-                  </IconButton>
-                  <IconButton onClick={handleVoiceRecord}>
-                    <MicIcon />
-                  </IconButton>
-                  <IconButton type="submit" color="primary">
-                    <SendIcon />
-                  </IconButton>
-                </InputAdornment>
-              ),
-            }}
-          />
+        <Box component="form" onSubmit={handleSendMessage}
+        elevation={4} sx={{ 
+          bgcolor: 'transparent',
+          position: 'sticky',
+         }}>
+          <Paper
+          elevation={4}
+          sx={{ 
+            display: 'flex', 
+            alignItems: 'center', 
+            p: 1, 
+            bgcolor: '#FEFEFE',
+            elavation: 4
+          }}>
+            <IconButton onClick={handleFileUpload} sx={{ color: 'rgba(18, 17, 17, 0.7)' }}>
+            <CgAttachment />
+            </IconButton>
+            <TextField
+              fullWidth
+              placeholder="Type a message"
+              value={messageText}
+              onChange={(e) => setMessageText(e.target.value)}
+              onKeyPress={(e) => e.key === 'Enter' && handleSendMessage()}
+              variant="standard"
+              InputProps={{
+                disableUnderline: true,
+                style: { color: 'black', paddingLeft: '8px' }
+              }}
+              sx={{ mx: 1 }}
+            />
+            <IconButton onClick={handleVoiceRecord} sx={{ color: 'rgba(68, 68, 68, 0.75)' }}>
+               <PiWaveformBold />
+            </IconButton>
+            <IconButton 
+              onClick={handleSendMessage} 
+              sx={{ 
+                bgcolor: 'primary.main', 
+                color: 'black',
+                '&:hover': { bgcolor: 'primary.dark' },
+                ml: 1
+              }}
+            >
+              <IoIosSend />
+            </IconButton>
+          </Paper>
         </Box>
       </Box>
     );
@@ -240,15 +322,15 @@ const Home = () => {
 
   const renderNotices = () => {
     return (
-      <Box sx={{ p: 3 }}>
-        <Typography variant="h5" gutterBottom>
+        <Box sx={{ p: 3, color: 'white' }}>
+      <Typography variant="h5" gutterBottom>
           Notices
         </Typography>
         <List>
           {notices.map((notice) => (
-            <Paper key={notice.id} sx={{ p: 2, mb: 2 }}>
+            <Paper key={notice.id} sx={{ p: 2, mb: 2, bgcolor: '#37353F', color: 'white', borderRadius: 5 }}>
               <Typography variant="h6">{notice.title}</Typography>
-              <Typography variant="body2" color="text.secondary" gutterBottom>
+              <Typography variant="body2" color="rgba(255,255,255,0.6)" gutterBottom>
                 {new Date(notice.date).toLocaleDateString()} - {notice.author}
               </Typography>
               <Typography>{notice.content}</Typography>
@@ -260,66 +342,206 @@ const Home = () => {
   };
 
   return (
-    <Box sx={{ display: 'flex', height: '100vh'}}>
+    <Box sx={{ 
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      zIndex: 1200,
+      display: 'flex', 
+      height: '100vh', 
+      bgcolor: '#18181A',
+      pt: 2,   // padding-top
+      pr: 2,   // padding-right
+      pb: 2,   // padding-bottom
+      pl: 0,   // padding-left (set to 0)
+      boxSizing: 'border-box'
+    }}>
       {/* Sidebar */}
-      <Drawer
-        variant="permanent"
+      <Box 
         sx={{
           width: 320,
-          flexShrink: 0,
-          '& .MuiDrawer-paper': {
-            width: 320,
-            boxSizing: 'border-box',
-          },
+          display: 'flex',
+          flexDirection: 'column',
+          borderRadius: 2,
         }}
       >
-        <Box sx={{ p: 2 }}>
+        {/* App Title */}
+        <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          
+          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, color: 'white' }}>
+            Pingme
+          </Typography>
+          
+          {/* Search */}
           <TextField
-            fullWidth
-            placeholder="Search contacts..."
-            value={searchQuery}
-            onChange={(e) => setSearchQuery(e.target.value)}
-            InputProps={{
-              startAdornment: (
-                <InputAdornment position="start">
-                  <SearchIcon />
-                </InputAdornment>
-              ),
+  fullWidth
+  placeholder="Search contacts..."
+  value={searchQuery}
+  onChange={(e) => setSearchQuery(e.target.value)}
+  InputProps={{
+    style: { color: 'white', paddingLeft: '8px',
+      height: 40,
+     },
+    startAdornment: (
+      <InputAdornment position="start">
+        <LuUserRoundSearch style={{ fontSize: '20px', color: 'rgba(255,255,255,0.7)', marginLeft: '10px' }} />
+      </InputAdornment>
+    ),
+  }}
+  sx={{
+    '& .MuiOutlinedInput-root': {
+      bgcolor: 'rgba(255,255,255,0.1)',
+      borderRadius: 30,
+      color: 'black',
+      '&:hover .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'rgba(255,255,255,0.3)',
+      },
+      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'primary.main',
+      },
+      '& .MuiOutlinedInput-notchedOutline': {
+        borderColor: 'rgba(255,255,255,0.2)',
+      },
+    },
+    '& .MuiInputLabel-root': {
+      color: 'rgba(255,255,255,0.7)',
+    },
+  }}
+/>
+
+        </Box>
+
+        {/* Horizontally scrollable tabs */}
+        <Box 
+        sx={{
+          p: 2,
+          overflowX: 'auto',
+          whiteSpace: 'nowrap',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+          '-ms-overflow-style': 'none', // for Internet Explorer and Edge
+          'scrollbar-width': 'none', // for Firefox
+        }}
+        >
+          <Button 
+            variant={activeTab === 'personal' ? 'contained' : 'outlined'} 
+            onClick={() => setActiveTab('personal')}
+            startIcon={<HiOutlineUser />}
+            sx={{ mr: 1, borderRadius: 2 , border: 'none', selected: 'none',
+               textTransform: 'none'
             }}
-          />
+          >
+            <Typography  sx={{ color: 'white' }}>
+            Personal
+            </Typography>
+
+          </Button>
+          <Button 
+            variant={activeTab === 'department' ? 'contained' : 'outlined'} 
+            onClick={() => setActiveTab('department')}
+            startIcon={<TbBuildingBridge2 />}
+            sx={{ mr: 1, borderRadius: 2, border: 'none',
+               textTransform: 'none'
+            }}
+          >
+            Department
+          </Button>
+          <Button 
+            variant={activeTab === 'groups' ? 'contained' : 'outlined'} 
+            onClick={() => setActiveTab('groups')}
+            startIcon={<GrGroup />}
+            sx={{ mr: 1, borderRadius: 2 , border: 'none',
+               textTransform: 'none'
+            }}
+          >
+            Groups
+          </Button>
+          <Button 
+            variant={activeTab === 'noticeboard' ? 'contained' : 'outlined'} 
+            onClick={() => setActiveTab('noticeboard')}
+            startIcon={<PiNotificationDuotone />}
+            sx={{ borderRadius: 2 ,border: 'none',
+               textTransform: 'none'
+            }}
+          >
+            Notices
+          </Button>
         </Box>
         
-        <Tabs
-          value={activeTab}
-          onChange={(e, newValue) => setActiveTab(newValue)}
-          variant="fullWidth"
-          sx={{ borderBottom: 1, borderColor: 'divider' }}
-        >
-          <Tab icon={<PersonIcon />} label="Personal" value="personal" />
-          <Tab icon={<BusinessIcon />} label="Department" value="department" />
-          <Tab icon={<GroupIcon />} label="Groups" value="groups" />
-          <Tab icon={<CampaignIcon />} label="Notices" value="noticeboard" />
-        </Tabs>
+        {/* Contacts list - scrollable area */}
+        <Box sx={{ 
+          flexGrow: 1, 
+          overflowY: 'auto',
+          px: 1,
+          borderTop: '1px solid rgba(255,255,255,0.1)',
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+          whiteSpace: 'nowrap',
+          '&::-webkit-scrollbar': {
+            display: 'none',
+          },
+          '-ms-overflow-style': 'none', // for Internet Explorer and Edge
+          'scrollbar-width': 'none', // for Firefox
+        }}>
+          {renderContacts()}
+        </Box>
         
-        {renderContacts()}
-      </Drawer>
+        {/* Logout button at bottom */}
+        <Box sx={{ p: 2 }}>
+          <Button 
+            fullWidth 
+            variant="outlined" 
+            color="error" 
+            onClick={handleLogout}
+            startIcon={<LogoutIcon />}
+            sx={{ borderRadius: 2 }}
+          >
+            Logout
+          </Button>
+        </Box>
+      </Box>
       
-      {/* Main content */}
-      <Box sx={{ flexGrow: 1, display: 'flex', flexDirection: 'column' }}>
-        <AppBar position="static" color="default" elevation={1}>
-          <Toolbar>
-            <Typography variant="h6" sx={{ flexGrow: 1 }}>
-              {activeChatId ? contacts.find(c => c.id === activeChatId)?.name : 'Chat'}
-            </Typography>
-            <IconButton onClick={() => setShowNotices(true)}>
-              <NotificationsIcon />
-            </IconButton>
-            <IconButton onClick={handleProfileMenuOpen}>
-              <AccountCircleIcon />
-            </IconButton>
-          </Toolbar>
-        </AppBar>
+      {/* Main chat area */}
+      <Box sx={{ 
+        flexGrow: 1, 
+        display: 'flex', 
+        flexDirection: 'column',
+        borderRadius: 6,
+        overflow: 'hidden',
+      }}>
+        {/* Chat header */}
+        <Box sx={{ 
+          p: 2, 
+          position: 'sticky',
+          top: 0,
+          zIndex: 1000,
+          display: 'flex', 
+          alignItems: 'center',
+          borderBottom: '2px solid rgba(187, 187, 187, 0.22)',
+          bgcolor: '#FEFEFE',
+        }}>
+          {activeChatId && (
+            <Avatar 
+              src={contacts.find(c => c.id === activeChatId)?.avatar} 
+              alt={contacts.find(c => c.id === activeChatId)?.name}
+              sx={{ mr: 2 }}
+            />
+          )}
+          <Typography variant="h6" sx={{ flexGrow: 1, color: 'black' ,fontFamily: 'GeneralSans-SemiBold' }}>
+            {activeChatId ? contacts.find(c => c.id === activeChatId)?.name : 'Select a chat'}
+          </Typography>
+
+          <IconButton sx={{ color: 'black' }} onClick={handleProfileMenuOpen}>
+          <PiUserListDuotone />
+          </IconButton>
+          <IconButton sx={{ color: 'black', fontSize: '20px' }} onClick={() => setShowNotices(true)}>
+          <BsLayoutSidebarInsetReverse />
+          </IconButton>
+      
+        </Box>
         
+        {/* Messages area */}
         {renderMessages()}
       </Box>
       
@@ -328,6 +550,9 @@ const Home = () => {
         anchorEl={anchorEl}
         open={Boolean(anchorEl)}
         onClose={handleProfileMenuClose}
+        PaperProps={{
+          sx: { bgcolor: '#FBFDFD', color: 'black' }
+        }}
       >
         <MenuItem onClick={handleProfileMenuClose}>
           <ListItemAvatar>
@@ -335,13 +560,14 @@ const Home = () => {
           </ListItemAvatar>
           <ListItemText 
             primary={currentUser?.name} 
-            secondary={currentUser?.email} 
+            secondary={currentUser?.email}
+            secondaryTypographyProps={{ color: 'rgba(255,255,255,0.7)' }}
           />
         </MenuItem>
-        <Divider />
+        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
         <MenuItem onClick={handleLogout}>
-          <LogoutIcon sx={{ mr: 1 }} />
-          Logout
+          <LogoutIcon sx={{ mr: 1, color: 'error.main' }} />
+          <Typography color="error">Logout</Typography>
         </MenuItem>
       </Menu>
       
@@ -350,11 +576,24 @@ const Home = () => {
         anchor="right"
         open={showNotices}
         onClose={() => setShowNotices(false)}
+        sx={{
+          borderTopLeftRadius: 10, borderBottomLeftRadius: 10,
+        }}
+        PaperProps={{
+          sx: { bgcolor: '#1D1D1F', color: 'white', width: 320, borderRadius: 5 }
+        }}
       >
+        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)',
+         }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>Notifications</Typography>
+          <IconButton sx={{ color: 'black' }} onClick={() => setShowNotices(false)}>
+            <CloseIcon />
+          </IconButton>
+        </Box>
         {renderNotices()}
       </Drawer>
     </Box>
   );
 };
 
-export default Home; 
+export default Home;

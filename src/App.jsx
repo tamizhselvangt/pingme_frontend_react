@@ -18,7 +18,8 @@ import { SnackbarProvider, useSnackbar } from 'notistack';
 const theme = createTheme({
   palette: {
     primary: {
-      main: '#EF4955',
+      main: '#008AFF',
+      red: '#EF4955',
     },
     secondary: {
       main: '#8BBCB9',
@@ -27,6 +28,7 @@ const theme = createTheme({
   },
   typography: {
     fontFamily: [
+      'Onest Regular',
       'ClashGrotesk-Regular',
       'GeneralSans-Regular'
     ].join(','),
