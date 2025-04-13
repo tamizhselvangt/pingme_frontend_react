@@ -124,14 +124,8 @@ useEffect(() => {
           sender: msg.senderId,
           text: msg.content,
           timestamp: new Date(msg.createdAt * 1000), // Assuming it's in seconds
-          file: msg.mediaType?.startsWith('image') || msg.mediaType?.startsWith('video') ? {
-            name: msg.mediaType,
-            data: msg.mediaData
-          } : null,
-          voice: msg.mediaType?.startsWith('audio') ? {
-            duration: 'Audio message',
-            data: msg.mediaData
-          } : null
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaData, 
         }));
         setMessages(prev => ({
           ...prev,
@@ -146,63 +140,87 @@ useEffect(() => {
     fetchMessages();
   }, [activeChatId, currentUser]);
   
-  const sendMessage = async (text, file = null, voice = null) => {
+  const sendMessage = async (text, file = null, mediaType = null) => {
     if (!activeChatId || !currentUser) return;
   
-    // Only send to the /api/messages/send endpoint if it's a plain text message
-    if (text && !file && !voice) {
-      const payload = {
-        senderId: currentUser.id,
-        recipientId: activeChatId,
-        content: text,
-        mediaData: null,
-        mediaType: null,
-      };
+    const baseMessage = {
+      senderId: currentUser.id,
+      recipientId: activeChatId,
+      content: text || '', // Always have content
+      mediaType: mediaType,
+    };
   
+    // If there's a file (image, video, audio)
+    if (file && mediaType) {
       try {
-        const response = await axios.post('http://localhost:8080/api/messages/send', payload);
+        const formData = new FormData();
+        formData.append("file", file);
+        formData.append("message", new Blob([JSON.stringify(baseMessage)], { type: 'application/json' }));
+  
+        const response = await axios.post('http://localhost:8080/api/messages/upload/media', formData, {
+          headers: {
+            'Content-Type': 'multipart/form-data'
+          }
+        });
   
         if (response.status === 202) {
-          // console.log('Text message sent successfully:', response.data);
           const msg = response.data;
           const sentMessage = {
             id: msg.id,
             sender: msg.senderId,
             text: msg.content,
-            timestamp: new Date(msg.timestamp * 1000), 
-            file: msg.mediaType?.startsWith('image') || msg.mediaType?.startsWith('video') ? {
-              name: msg.mediaType,
-              data: msg.mediaData
-            } : null,
-            voice: msg.mediaType?.startsWith('audio') ? {
-              duration: 'Audio message',
-              data: msg.mediaData
-            } : null
+            timestamp: new Date(msg.createdAt * 1000),
+            mediaType: msg.mediaType,
+            mediaData: msg.mediaData, // ✅ Make this direct
           };
-          // Add the message to local state
+  
           setMessages(prev => ({
             ...prev,
             [activeChatId]: [...(prev[activeChatId] || []), sentMessage],
           }));
- 
         } else {
-          console.warn('Unexpected response status:', response.status);
-          enqueueSnackbar('Failed to send text message', { variant: 'error' });
+          enqueueSnackbar('Failed to send media message', { variant: 'error' });
         }
       } catch (error) {
-        console.error('Failed to send text message:', error);
-        enqueueSnackbar('Failed to send text message', { variant: 'error' });
+        console.error('Media upload failed:', error);
+        enqueueSnackbar('Failed to send media message', { variant: 'error' });
       }
       return;
     }
   
-    // If it's a media message (file or voice), handle with another endpoint
-    // You can handle that here:
-    if (file || voice) {
-      // Example placeholder for media upload logic
-      console.log('Send media message via different endpoint...');
+    // Else: Text-only message
+    if (text) {
+      try {
+        const response = await axios.post('http://localhost:8080/api/messages/send', {
+          ...baseMessage,
+          mediaData: null,
+        });
+  
+        if (response.status === 202) {
+          const msg = response.data;
+          const sentMessage = {
+            id: msg.id,
+            sender: msg.senderId,
+            text: msg.content,
+            timestamp: new Date(msg.timestamp * 1000),
+            mediaType: null,
+            mediaData: null, // ✅ Make this direct
+          };
+  
+          setMessages(prev => ({
+            ...prev,
+            [activeChatId]: [...(prev[activeChatId] || []), sentMessage],
+          }));
+        } else {
+          enqueueSnackbar('Failed to send text message', { variant: 'error' });
+        }
+      } catch (error) {
+        console.error('Text message send failed:', error);
+        enqueueSnackbar('Failed to send text message', { variant: 'error' });
+      }
     }
   };
+  
   
   // const sendMessage = (text, file = null, voice = null) => {
   //   if (!activeChatId || !currentUser) return;

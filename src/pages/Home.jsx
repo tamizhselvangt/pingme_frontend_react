@@ -2,7 +2,6 @@ import { useState, useRef, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useChat } from '../context/ChatContext';
-import axios from 'axios';
 import { 
   Box, 
   Drawer, 
@@ -25,23 +24,12 @@ import {
   Paper,
   InputAdornment,
   Button,
-  Stack
+  Stack,
+  useMediaQuery,
+  useTheme,
+  LinearProgress 
 } from '@mui/material';
-import {
-  Send as SendIcon,
-  AttachFile as AttachFileIcon,
-  Mic as MicIcon,
-  Search as SearchIcon,
-  AccountCircle as AccountCircleIcon,
-  Notifications as NotificationsIcon,
-  Person as PersonIcon,
-  Group as GroupIcon,
-  Business as BusinessIcon,
-  Campaign as CampaignIcon,
-  Logout as LogoutIcon,
-  Close as CloseIcon,
-  Chat as ChatIcon
-} from '@mui/icons-material';
+import {Logout as LogoutIcon, Close as CloseIcon} from '@mui/icons-material';
 import { PiUserListDuotone } from "react-icons/pi";
 import { BsLayoutSidebarInsetReverse } from "react-icons/bs";
 import { HiOutlineUser } from "react-icons/hi2";
@@ -53,9 +41,21 @@ import { PiNotificationDuotone } from "react-icons/pi";
 import { PiWaveformBold } from "react-icons/pi";
 import { CgAttachment } from "react-icons/cg";
 import { LuUserRoundSearch } from "react-icons/lu";
+import { BsLayoutSidebarInset } from "react-icons/bs";
+import EmojiPickerButton from '../components/EmojiPickerButton';
+import { IoCloseCircleOutline } from "react-icons/io5";
+import { MdOutlineFilePresent } from "react-icons/md";
+import  AudioRecorder  from '../components/AudioRecorder';
+import MediaMessage from '../components/MediaMessage';
+import { MdOutlineAddReaction } from "react-icons/md";
+import { TbLayoutGridAdd } from "react-icons/tb";
+import ChatActions from '../components/ChatActions';
 
 const Home = () => {
   const navigate = useNavigate();
+  const theme = useTheme();
+  const isMobile = useMediaQuery(theme.breakpoints.down('md'));
+
   const { currentUser, logout } = useAuth();
   const { 
     contacts, 
@@ -73,7 +73,22 @@ const Home = () => {
   const [messageText, setMessageText] = useState('');
   const [anchorEl, setAnchorEl] = useState(null);
   const [showNotices, setShowNotices] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
+  const [selectedFile, setSelectedFile] = useState(null);
+  const [isPrgressShown, setIsPrgressShown] = useState(false); // Default: not uploading
   const messagesEndRef = useRef(null);
+
+  //Voice Recorder Handling
+  const [uploadingAudio, setUploadingAudio] = useState(false);
+  const [uploadProgress, setUploadProgress] = useState(0);
+  const [recordedAudioFile, setRecordedAudioFile] = useState(null);
+
+
+
+  // Check if the window is small on initial load and when window is resized
+  useEffect(() => {
+    setSidebarOpen(!isMobile);
+  }, [isMobile]);
 
   const scrollToBottom = () => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
@@ -87,6 +102,23 @@ const Home = () => {
     setAnchorEl(event.currentTarget);
   };
 
+const getSelectedFileSize = (file) => {
+  const sizes = ['Bytes', 'KB', 'MB', 'GB', 'TB'];
+  if (file.size === 0) return '0 Byte';
+  const i = parseInt(Math.floor(Math.log(file.size) / Math.log(1024)));
+  return Math.round(file.size / Math.pow(1024, i), 2) + ' ' + sizes[i];
+};
+
+
+const truncateFileName = (fileName) => {
+  if (fileName.length > 20) {
+      const ext = fileName.split('.').pop();
+      return `${fileName.slice(0, 25)}... .${ext}`;
+  }
+  return fileName;
+};
+
+
   const handleProfileMenuClose = () => {
     setAnchorEl(null);
   };
@@ -96,26 +128,73 @@ const Home = () => {
     navigate('/');
   };
 
-  const handleSendMessage = (e) => {
+  var handleSendMessage = (e) => {
     if (e) e.preventDefault();
     if (messageText.trim()) {
-      sendMessage(messageText);
+      if (selectedFile) {
+        sendMessage(messageText, selectedFile);
+      } else {
+        sendMessage(messageText);
+      }
       setMessageText('');
+      setSelectedFile(null);
+    }
+    if(selectedFile) {
+      sendMessage('', selectedFile, selectedFile.type);
+      setSelectedFile(null);
+      setMessageText('');
+    }
+    if(recordedAudioFile) {
+      handleSendAudioMessage();
     }
   };
 
-  const handleFileUpload = () => {
-    // Mock file upload
-    const file = { name: 'document.pdf', size: '1.2MB' };
-    sendMessage('', file);
+
+const toggleSidebar = () => {
+    setSidebarOpen(!sidebarOpen);
   };
 
-  const handleVoiceRecord = () => {
-    // Mock voice recording
-    const voice = { duration: '0:30', url: 'voice-message.mp3' };
-    sendMessage('', null, voice);
+  function isOnlyEmoji(text) {
+    const emojiRegex = /^(?:\p{Extended_Pictographic}|\p{Emoji_Presentation}){1,2}$/u;
+    return emojiRegex.test(text.trim());
+  }
+
+
+  //Audio Handlings
+  const handleRecordingComplete = (file) => {
+    setRecordedAudioFile(file);
   };
 
+  const handleSendAudioMessage = () => {
+    if (recordedAudioFile) {
+      setUploadingAudio(true);
+      
+      // Mock upload progress - replace with your actual upload logic
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 10;
+        setUploadProgress(progress);
+        
+        if (progress >= 100) {
+          clearInterval(interval);
+          setUploadingAudio(false);
+          
+          // Send the message with the audio file
+          sendMessage('',recordedAudioFile, recordedAudioFile.type);
+          setRecordedAudioFile(null);
+          setUploadProgress(0);
+        }
+
+      }, 300);
+    }
+    else if (messageText.trim()) {
+      sendMessage(messageText);
+      setMessageText('');
+    }
+    setUploadingAudio(false);
+    setRecordedAudioFile(null);
+  };
+  
   const renderContacts = () => {
     if (activeTab === 'noticeboard') {
       return (
@@ -154,7 +233,12 @@ const Home = () => {
             key={contact.id} 
             button={true}
             selected={activeChatId === contact.id}
-            onClick={() => setActiveChatId(contact.id)}
+            onClick={() => {
+              setActiveChatId(contact.id);
+              if (isMobile) {
+                setSidebarOpen(false);
+              }
+            }}
             sx={{
               borderRadius: 1,
               '&.Mui-selected': {
@@ -195,10 +279,10 @@ const Home = () => {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'rgba(255,255,255,0.5)',
           bgcolor: '#FCFBFC',
+          width: '100%'
          }}> 
           <Box sx={{ textAlign: 'center' }}>
-            {/* <ChatIcon sx={{ fontSize: 60, mb: 2, opacity: 0.5 , color: 'rgba(30, 30, 30, 0.64)' }} /> */}
-            <TbMessageFilled style={{ fontSize: 80, mb: 2, opacity: 0.5 , color: 'rgba(30, 30, 30, 0.64)' }}/>
+            <TbMessageFilled style={{ fontSize: 80, opacity: 0.5, color: 'rgba(30, 30, 30, 0.64)' }}/>
             <Typography variant="h6" sx={{ color: 'rgba(30, 30, 30, 0.64)' }}>
               Select a conversation to start chatting
             </Typography>
@@ -223,7 +307,7 @@ const Home = () => {
               whiteSpace: 'nowrap',
               '&::-webkit-scrollbar': {
                display: 'none',
-               },
+              },
               '-ms-overflow-style': 'none', // for Internet Explorer and Edge
               'scrollbar-width': 'none', // for Firefox
          }}>
@@ -231,39 +315,102 @@ const Home = () => {
             const isOwnMessage = message.sender === currentUser?.id;
             return (
               <Box
+                display="flex"
+                alignItems="flex-start"
+                ml={1.3}
+                m={1}
+                width="80%"
                 key={message.id}
-                sx={{
-                  display: 'flex',
-                  justifyContent: isOwnMessage ? 'flex-end' : 'flex-start',
-                  mb: 2,
-                }}
               >
-                <Paper
-                  sx={{
-                    p: 2,
-                    maxWidth: '70%',
-                    borderRadius: 2,
-                    bgcolor: isOwnMessage ? 'primary.main' : 'rgba(255,255,255,0.1)',
-                    color: 'black',
-                  }}
-                >
-                  {message.text && <Typography>{message.text}</Typography>}
-                  {message.file && (
-                    <Box sx={{ mt: 1 }}>
-                      <AttachFileIcon fontSize="small" />
-                      <Typography variant="body2">{message.file.name}</Typography>
+                {/* Avatar */}
+                {!isOwnMessage && activeChatId && (
+                  <Avatar
+                    src={contacts.find(c => c.id === activeChatId)?.avatar}
+                    alt={contacts.find(c => c.id === activeChatId)?.name}
+                    sx={{ width: 40, height: 40, borderRadius: 1.5, mt: 0.5 }}
+                  />
+                )}
+              
+                {isOwnMessage && (
+                  <Avatar
+                    src={currentUser?.photoURL}
+                    alt={currentUser?.name}
+                    sx={{ width: 40, height: 40, borderRadius: 1.5, mt: 0.5 }}
+                  />
+                )}
+              
+                {/* Message Content */}
+                <Box ml={1} display="flex" flexDirection="column" maxWidth="80%">
+                  
+                  {/* Name & Time */}
+                  <Box display="flex" alignItems="center" gap={1} mt='1'>
+                   { !isOwnMessage &&  activeChatId && (
+                      <Typography variant="subtitle2" color="black"  sx={{ fontFamily: 'GeneralSans-SemiBold' }}>
+                        {contacts.find(c => c.id === activeChatId)?.name}
+                      </Typography>
+                    )
+                    }
+                    { isOwnMessage &&  activeChatId && (
+                      <Typography variant="subtitle2" color="black" fontWeight="bold" sx={{ fontFamily: 'GeneralSans-SemiBold' }}>
+                        {currentUser?.name}
+                      </Typography>
+                    )
+                    }
+                   
+                  </Box>
+              
+                  {/* Message Text */}
+                  <Box mt={0.3} display="flex" direction="row" alignItems="flex-start">
+            
+                    <Typography
+                      variant="body1"
+                      sx={{
+                        color: 'black',
+                        whiteSpace: 'pre-wrap',
+                        wordBreak: 'break-word',
+                        fontSize: isOnlyEmoji(message.text) ? '2.5rem' : '1rem',
+                        textAlign: isOnlyEmoji(message.text) ? 'center' : 'left',
+                      }}
+                    >
+                      {message.text}
+                    </Typography>
+              
+                
+                    {/* <Typography>
+                      MediaMessage 
+                    </Typography> */}
+                   {message.mediaData && message.mediaType && (
+                            <MediaMessage 
+                              mediaData={message.mediaData}
+                               mediaType={message.mediaType}
+                              isYou={isOwnMessage}
+                          />
+                       )}
+
+            
+                  </Box>
+                  {/* Reaction Icon  && Time*/}
+                  <Box display="flex" alignItems="center" gap={1} mt='1'> 
+                    <Typography variant="caption" color="text.secondary" mt={0.5}>
+                      {new Date(message.timestamp).toLocaleTimeString([], {
+                        hour: '2-digit',
+                        minute: '2-digit',
+                      })}
+                    </Typography>
+                    <Box>
+                      {/* <IconButton
+                        sx={{ p: 0.5, color: 'rgba(86, 86, 86, 0.6)' }}
+                      > */}
+                        {/* <LuSmile size={15} /> */}
+                         <EmojiPickerButton onSelect={(emoji) => {
+                            console.log('Selected emoji:', emoji);
+                            // You can now react or insert it into a message
+                      }} />
+
+                      {/* </IconButton> */}
                     </Box>
-                  )}
-                  {message.voice && (
-                    <Box sx={{ mt: 1 }}>
-                      <MicIcon fontSize="small" />
-                      <Typography variant="body2">{message.voice.duration}</Typography>
-                    </Box>
-                  )}
-                  <Typography variant="caption" sx={{ display: 'block', mt: 1, opacity: 0.7 }}>
-                    {new Date(message.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}
-                  </Typography>
-                </Paper>
+                  </Box>
+                </Box>
               </Box>
             );
           })}
@@ -271,9 +418,10 @@ const Home = () => {
         </Box>
         
         <Box component="form" onSubmit={handleSendMessage}
-        elevation={4} sx={{ 
-          bgcolor: 'transparent',
+        elevation={10} sx={{ 
+          bgcolor: 'rgba(228, 228, 228, 0.89)',
           position: 'sticky',
+          borderTop: '2px solid rgba(255,255,255,0.1)',
          }}>
           <Paper
           elevation={4}
@@ -281,12 +429,111 @@ const Home = () => {
             display: 'flex', 
             alignItems: 'center', 
             p: 1, 
-            bgcolor: '#FEFEFE',
-            elavation: 4
+            bgcolor: 'transparent',
+            elevation: 4
           }}>
-            <IconButton onClick={handleFileUpload} sx={{ color: 'rgba(18, 17, 17, 0.7)' }}>
-            <CgAttachment />
-            </IconButton>
+ <label htmlFor="fileInput">
+      <input
+        id="fileInput"
+        type="file"
+        accept="image/*,video/*,audio/*"
+        style={{ display: 'none' }}
+        onChange={(e) => setSelectedFile(e.target.files[0])}
+      />
+      <IconButton component="span" sx={{ color: 'rgba(18, 17, 17, 0.7)' }}>
+        <CgAttachment />
+      </IconButton>
+    </label>
+    {selectedFile && (
+  <Box
+    sx={{
+      color: 'white',
+      position: 'absolute',
+      bottom: '60px',
+      left: '10px',
+      display: 'flex',
+      alignItems: 'center',
+      gap: 1,
+      zIndex: 10,
+    }}
+  >
+    <Box
+      sx={{
+        fontSize: '28px',
+        backgroundColor: '#9D97C7',
+        color: 'white',
+        pt: 1,
+        pb: 0,
+        pl: 1,
+        pr: 1,
+        borderRadius: '8px',
+      }}
+    >
+      <MdOutlineFilePresent />
+    </Box>
+
+    <Box
+      sx={{
+        display: 'flex',
+        flexDirection: 'column',
+        alignItems: 'flex-end',
+        backgroundColor: '#9D97C7',
+        borderRadius: '5px',
+        padding: '8px',
+        maxWidth: '300px',
+        overflow: 'hidden',
+      }}
+    >
+      <Typography
+        sx={{
+          color: 'white',
+          fontSize: '0.8rem',
+          textOverflow: 'ellipsis',
+          fontFamily: 'GeneralSans-SemiBold',
+          overflow: 'hidden',
+          whiteSpace: 'nowrap',
+        }}
+      >
+        {truncateFileName(selectedFile.name)}
+      </Typography>
+
+      {isPrgressShown ? (
+        <LinearProgress
+          variant="determinate"
+          value={uploadProgress}
+          sx={{
+            mt: 1,
+            height: '10px',
+            width: '100%',
+            borderRadius: '30px',
+            backgroundColor: '#b6b6b6',
+            '& .MuiLinearProgress-bar': {
+              backgroundColor: '#5A65CA',
+              borderRadius: '30px',
+            },
+          }}
+        />
+      ) : (
+        <Typography
+          sx={{
+            fontSize: '0.7rem',
+            color: 'white',
+            mt: 1,
+            textAlign: 'start',
+          }}
+        >
+          File Size: {getSelectedFileSize(selectedFile)}
+        </Typography>
+      )}
+    </Box>
+
+    <IconButton onClick={() => setSelectedFile(null)}>
+  <Box component={
+    IoCloseCircleOutline} sx={{ color: '#E66104', fontSize: '1.8rem' }}
+     />
+</IconButton>
+  </Box>
+)}
             <TextField
               fullWidth
               placeholder="Type a message"
@@ -300,19 +547,24 @@ const Home = () => {
               }}
               sx={{ mx: 1 }}
             />
-            <IconButton onClick={handleVoiceRecord} sx={{ color: 'rgba(68, 68, 68, 0.75)' }}>
-               <PiWaveformBold />
-            </IconButton>
+                    <AudioRecorder 
+          onRecordingComplete={handleRecordingComplete}
+          currentlyUploading={uploadingAudio}
+          uploadProgress={uploadProgress}
+        />
             <IconButton 
               onClick={handleSendMessage} 
               sx={{ 
                 bgcolor: 'primary.main', 
                 color: 'black',
                 '&:hover': { bgcolor: 'primary.dark' },
-                ml: 1
+                ml: 1,
+                borderRadius: 2
               }}
             >
-              <IoIosSend />
+              <IoIosSend  style={{
+                color: 'white'
+              }}/>
             </IconButton>
           </Paper>
         </Box>
@@ -323,128 +575,127 @@ const Home = () => {
   const renderNotices = () => {
     return (
         <Box sx={{ p: 3, color: 'white' }}>
-      <Typography variant="h5" gutterBottom>
-          Notices
-        </Typography>
-        <List>
-          {notices.map((notice) => (
-            <Paper key={notice.id} sx={{ p: 2, mb: 2, bgcolor: '#37353F', color: 'white', borderRadius: 5 }}>
-              <Typography variant="h6">{notice.title}</Typography>
-              <Typography variant="body2" color="rgba(255,255,255,0.6)" gutterBottom>
-                {new Date(notice.date).toLocaleDateString()} - {notice.author}
-              </Typography>
-              <Typography>{notice.content}</Typography>
-            </Paper>
-          ))}
-        </List>
-      </Box>
+          <Typography variant="h5" gutterBottom>
+            Notices
+          </Typography>
+          <List>
+            {notices.map((notice) => (
+              <Paper key={notice.id} sx={{ p: 2, mb: 2, bgcolor: '#37353F', color: 'white', borderRadius: 5 }}>
+                <Typography variant="h6">{notice.title}</Typography>
+                <Typography variant="body2" color="rgba(255,255,255,0.6)" gutterBottom>
+                  {new Date(notice.date).toLocaleDateString()} - {notice.author}
+                </Typography>
+                <Typography>{notice.content}</Typography>
+              </Paper>
+            ))}
+          </List>
+        </Box>
     );
   };
 
-  return (
-    <Box sx={{ 
-      position: 'fixed',
-      top: 0,
-      left: 0,
-      right: 0,
-      zIndex: 1200,
-      display: 'flex', 
-      height: '100vh', 
-      bgcolor: '#18181A',
-      pt: 2,   // padding-top
-      pr: 2,   // padding-right
-      pb: 2,   // padding-bottom
-      pl: 0,   // padding-left (set to 0)
-      boxSizing: 'border-box'
-    }}>
-      {/* Sidebar */}
+  const renderSidebar = () => {
+    return (
       <Box 
         sx={{
           width: 320,
+          height: '100%',
           display: 'flex',
           flexDirection: 'column',
           borderRadius: 2,
+          transition: 'transform 0.3s ease',
+          transform: sidebarOpen ? 'translateX(0)' : 'translateX(-120%)',
+          position: isMobile ? 'absolute' : 'relative',
+          zIndex: 1100,
+          bgcolor: '#18181A',
+          boxShadow: isMobile ? '0px 0px 15px rgba(0,0,0,0.2)' : 'none',
+          ml: 2
         }}
       >
         {/* App Title */}
         <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
+          <Box sx={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+            <Typography variant="h5" fontWeight="bold" sx={{ color: 'white' }}>
+              Pingme
+            </Typography>
+            <IconButton 
+              onClick={toggleSidebar} 
+              sx={{ color: 'white' }}
+            >
+          <BsLayoutSidebarInset />
+            </IconButton>
+          </Box>
           
-          <Typography variant="h5" fontWeight="bold" sx={{ mb: 2, color: 'white' }}>
-            Pingme
-          </Typography>
-          
-          {/* Search */}
+          {/* Search TextField  and add Contact Button*/}
+          <Box sx={{ display: 'flex', alignItems: 'flex-end', justifyContent: 'space-between' }}>
           <TextField
-  fullWidth
-  placeholder="Search contacts..."
-  value={searchQuery}
-  onChange={(e) => setSearchQuery(e.target.value)}
-  InputProps={{
-    style: { color: 'white', paddingLeft: '8px',
-      height: 40,
-     },
-    startAdornment: (
-      <InputAdornment position="start">
-        <LuUserRoundSearch style={{ fontSize: '20px', color: 'rgba(255,255,255,0.7)', marginLeft: '10px' }} />
-      </InputAdornment>
-    ),
-  }}
-  sx={{
-    '& .MuiOutlinedInput-root': {
-      bgcolor: 'rgba(255,255,255,0.1)',
-      borderRadius: 30,
-      color: 'black',
-      '&:hover .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'rgba(255,255,255,0.3)',
-      },
-      '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'primary.main',
-      },
-      '& .MuiOutlinedInput-notchedOutline': {
-        borderColor: 'rgba(255,255,255,0.2)',
-      },
-    },
-    '& .MuiInputLabel-root': {
-      color: 'rgba(255,255,255,0.7)',
-    },
-  }}
-/>
-
+            fullWidth
+            placeholder="Search contacts..."
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            InputProps={{
+              style: { color: 'white', paddingLeft: '8px', height: 40 },
+              startAdornment: (
+                <InputAdornment position="start">
+                  <LuUserRoundSearch style={{ fontSize: '20px', color: 'rgba(255,255,255,0.7)', marginLeft: '10px' }} />
+                </InputAdornment>
+              ),
+            }}
+            sx={{
+              mt: 2,
+              '& .MuiOutlinedInput-root': {
+                bgcolor: 'rgba(255,255,255,0.1)',
+                borderRadius: 30,
+                color: 'black',
+                '&:hover .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.3)',
+                },
+                '&.Mui-focused .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'primary.main',
+                },
+                '& .MuiOutlinedInput-notchedOutline': {
+                  borderColor: 'rgba(255,255,255,0.2)',
+                },
+              },
+              '& .MuiInputLabel-root': {
+                color: 'rgba(255,255,255,0.7)',
+              },
+            }}
+          />
+          {/* <IconButton sx={{ color: 'white' }} >
+            <TbLayoutGridAdd />
+          </IconButton> */}
+          <ChatActions />
+          </Box>
         </Box>
 
         {/* Horizontally scrollable tabs */}
         <Box 
-        sx={{
-          p: 2,
-          overflowX: 'auto',
-          whiteSpace: 'nowrap',
-          '&::-webkit-scrollbar': {
-            display: 'none',
-          },
-          '-ms-overflow-style': 'none', // for Internet Explorer and Edge
-          'scrollbar-width': 'none', // for Firefox
-        }}
+          sx={{
+            p: 2,
+            overflowX: 'auto',
+            whiteSpace: 'nowrap',
+            '&::-webkit-scrollbar': {
+              display: 'none',
+            },
+            '-ms-overflow-style': 'none',
+            'scrollbar-width': 'none',
+          }}
         >
           <Button 
             variant={activeTab === 'personal' ? 'contained' : 'outlined'} 
             onClick={() => setActiveTab('personal')}
             startIcon={<HiOutlineUser />}
-            sx={{ mr: 1, borderRadius: 2 , border: 'none', selected: 'none',
-               textTransform: 'none'
-            }}
+            sx={{ mr: 1, borderRadius: 2, border: 'none', textTransform: 'none' }}
           >
-            <Typography  sx={{ color: 'white' }}>
-            Personal
+            <Typography>
+              Personal
             </Typography>
-
           </Button>
           <Button 
             variant={activeTab === 'department' ? 'contained' : 'outlined'} 
             onClick={() => setActiveTab('department')}
             startIcon={<TbBuildingBridge2 />}
-            sx={{ mr: 1, borderRadius: 2, border: 'none',
-               textTransform: 'none'
-            }}
+            sx={{ mr: 1, borderRadius: 2, border: 'none', textTransform: 'none' }}
           >
             Department
           </Button>
@@ -452,9 +703,7 @@ const Home = () => {
             variant={activeTab === 'groups' ? 'contained' : 'outlined'} 
             onClick={() => setActiveTab('groups')}
             startIcon={<GrGroup />}
-            sx={{ mr: 1, borderRadius: 2 , border: 'none',
-               textTransform: 'none'
-            }}
+            sx={{ mr: 1, borderRadius: 2, border: 'none', textTransform: 'none' }}
           >
             Groups
           </Button>
@@ -462,9 +711,7 @@ const Home = () => {
             variant={activeTab === 'noticeboard' ? 'contained' : 'outlined'} 
             onClick={() => setActiveTab('noticeboard')}
             startIcon={<PiNotificationDuotone />}
-            sx={{ borderRadius: 2 ,border: 'none',
-               textTransform: 'none'
-            }}
+            sx={{ borderRadius: 2, border: 'none', textTransform: 'none' }}
           >
             Notices
           </Button>
@@ -481,8 +728,8 @@ const Home = () => {
           '&::-webkit-scrollbar': {
             display: 'none',
           },
-          '-ms-overflow-style': 'none', // for Internet Explorer and Edge
-          'scrollbar-width': 'none', // for Firefox
+          '-ms-overflow-style': 'none',
+          'scrollbar-width': 'none',
         }}>
           {renderContacts()}
         </Box>
@@ -495,12 +742,63 @@ const Home = () => {
             color="error" 
             onClick={handleLogout}
             startIcon={<LogoutIcon />}
-            sx={{ borderRadius: 2 }}
+            sx={{ borderRadius: 2,
+              textTransform: 'none',
+              border: 'none'
+             }}
           >
-            Logout
+            <Typography sx={{ color: 'white', textTransform: 'none' }}>
+              Logout
+            </Typography>
+          
           </Button>
         </Box>
       </Box>
+    );
+  };
+
+  return (
+    <Box sx={{ 
+      position: 'fixed',
+      top: 0,
+      left: 0,
+      right: 0,
+      bottom: 0,
+      zIndex: 1200,
+      display: 'flex', 
+      height: '100vh', 
+      // bgcolor: '#18181A',
+      bgcolor: 'black',
+      pt: 2,
+      pr: 2,
+      pb: 2,
+      pl: 0,
+      boxSizing: 'border-box',
+      overflow: 'hidden',
+      width: '100%'
+    }}>
+      {/* Sidebar */}
+      {renderSidebar()}
+      
+      {/* Toggle Button (Only visible when sidebar is closed) */}
+      {!sidebarOpen && (
+        <IconButton 
+          onClick={toggleSidebar}
+          sx={{ 
+            position: 'absolute',
+            top: 18,
+            left: 18,
+            bgcolor: 'rgba(255,255,255,0.1)',
+            color: 'white',
+            zIndex: 1050,
+            '&:hover': {
+              bgcolor: 'rgba(255,255,255,0.2)',
+            }
+          }}
+        >
+    {    !isMobile &&( <BsLayoutSidebarInsetReverse />)}
+        </IconButton>
+      )}
       
       {/* Main chat area */}
       <Box sx={{ 
@@ -509,18 +807,31 @@ const Home = () => {
         flexDirection: 'column',
         borderRadius: 6,
         overflow: 'hidden',
+        ml: sidebarOpen && !isMobile ? 2 : 2,
+        transition: 'margin-left 0.3s ease',
+        width: '100px',
       }}>
         {/* Chat header */}
         <Box sx={{ 
           p: 2, 
           position: 'sticky',
           top: 0,
+          elevation: 10,
           zIndex: 1000,
           display: 'flex', 
           alignItems: 'center',
-          borderBottom: '2px solid rgba(187, 187, 187, 0.22)',
+          borderBottom: '2px solid rgba(187, 187, 187, 0.37)',
           bgcolor: '#FEFEFE',
         }}>
+          {!sidebarOpen && isMobile && (
+            <IconButton 
+              onClick={toggleSidebar} 
+              sx={{ mr: 1, color: 'black' }}
+            >
+             <BsLayoutSidebarInsetReverse />
+            </IconButton>
+          )}
+          
           {activeChatId && (
             <Avatar 
               src={contacts.find(c => c.id === activeChatId)?.avatar} 
@@ -528,17 +839,16 @@ const Home = () => {
               sx={{ mr: 2 }}
             />
           )}
-          <Typography variant="h6" sx={{ flexGrow: 1, color: 'black' ,fontFamily: 'GeneralSans-SemiBold' }}>
+          <Typography variant="h6" sx={{ flexGrow: 1, color: 'black', fontFamily: 'GeneralSans-SemiBold' }}>
             {activeChatId ? contacts.find(c => c.id === activeChatId)?.name : 'Select a chat'}
           </Typography>
 
           <IconButton sx={{ color: 'black' }} onClick={handleProfileMenuOpen}>
-          <PiUserListDuotone />
+            <PiUserListDuotone />
           </IconButton>
           <IconButton sx={{ color: 'black', fontSize: '20px' }} onClick={() => setShowNotices(true)}>
-          <BsLayoutSidebarInsetReverse />
+            <BsLayoutSidebarInsetReverse />
           </IconButton>
-      
         </Box>
         
         {/* Messages area */}
@@ -561,10 +871,10 @@ const Home = () => {
           <ListItemText 
             primary={currentUser?.name} 
             secondary={currentUser?.email}
-            secondaryTypographyProps={{ color: 'rgba(255,255,255,0.7)' }}
+            secondaryTypographyProps={{ color: 'rgba(0,0,0,0.6)' }}
           />
         </MenuItem>
-        <Divider sx={{ bgcolor: 'rgba(255,255,255,0.1)' }} />
+        <Divider sx={{ bgcolor: 'rgba(0,0,0,0.1)' }} />
         <MenuItem onClick={handleLogout}>
           <LogoutIcon sx={{ mr: 1, color: 'error.main' }} />
           <Typography color="error">Logout</Typography>
@@ -577,16 +887,21 @@ const Home = () => {
         open={showNotices}
         onClose={() => setShowNotices(false)}
         sx={{
-          borderTopLeftRadius: 10, borderBottomLeftRadius: 10,
+          borderTopLeftRadius: 10, 
+          borderBottomLeftRadius: 10,
         }}
         PaperProps={{
           sx: { bgcolor: '#1D1D1F', color: 'white', width: 320, borderRadius: 5 }
         }}
       >
-        <Box sx={{ p: 2, display: 'flex', alignItems: 'center', borderBottom: '1px solid rgba(255,255,255,0.1)',
-         }}>
+        <Box sx={{ 
+          p: 2, 
+          display: 'flex', 
+          alignItems: 'center', 
+          borderBottom: '1px solid rgba(255,255,255,0.1)',
+        }}>
           <Typography variant="h6" sx={{ flexGrow: 1, color: 'white' }}>Notifications</Typography>
-          <IconButton sx={{ color: 'black' }} onClick={() => setShowNotices(false)}>
+          <IconButton sx={{ color: 'white' }} onClick={() => setShowNotices(false)}>
             <CloseIcon />
           </IconButton>
         </Box>
