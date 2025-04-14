@@ -20,6 +20,9 @@ export const ChatProvider = ({ children }) => {
   const [searchQuery, setSearchQuery] = useState('');
   const { enqueueSnackbar, closeSnackbar } = useSnackbar();
   const stompClientRef = useRef(null);
+  const [groups, setGroups] = useState([]);
+  const [selectedGroupChat, setSelectedGroupChat] = useState(null);
+  const [groupMessages, setGroupMessages] = useState({});
 
   // Socket connection Handling
 useEffect(() => {
@@ -68,6 +71,8 @@ useEffect(() => {
       stompClient.deactivate();
     };
   }, [currentUser]);
+
+
   
   // Fetch All Users for contacts
   useEffect(() => {
@@ -117,7 +122,7 @@ useEffect(() => {
       if (!activeChatId || !currentUser?.id) return;
     
       try {
-        const response = await axios.get(`http://localhost:8080/api/messages/messages/${currentUser.id}/${activeChatId}`);
+        const response = await axios.post(`http://localhost:8080/api/messages/messages/${currentUser.id}/${activeChatId}`);
       
         const fetchedMessages = response.data.map((msg) => ({
           id: msg.id,
@@ -136,9 +141,21 @@ useEffect(() => {
         enqueueSnackbar('Failed to fetch messages', { variant: 'error' });
       }
     };
-
     fetchMessages();
   }, [activeChatId, currentUser]);
+
+  useEffect(() => {
+    const fetchGroups = async () => {
+      try {
+        const response = await axios.post(`http://localhost:8080/api/group-chat/user/${currentUser.id}`);
+        setGroups(response.data);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Failed to fetch groups:', error);  
+      }
+    };
+    fetchGroups();
+  }, [currentUser]);
   
   const sendMessage = async (text, file = null, mediaType = null) => {
     if (!activeChatId || !currentUser) return;
@@ -220,26 +237,90 @@ useEffect(() => {
       }
     }
   };
+
+
+  const createChatGroup = async (groupDetails) => {
+    if (groupDetails.groupName.trim() === '') {
+     enqueueSnackbar('Group Name is required', { variant: 'error' });
+      return;
+    }
+    const groupPayload = {
+      groupName: groupDetails.groupName,
+      description: groupDetails.description,
+      creatorId: currentUser.id,
+      departmentId: currentUser.departmentId
+    };
+    console.log(groupPayload);
+    try {
+      // Post to your Spring backend
+      const response = await axios.post('http://localhost:8080/api/group-chat/create', groupPayload);
+      const newGroup = response.data;
   
+      // Update state — assuming 'groups' state exists
+      setGroups(prevGroups => [...prevGroups, newGroup]);
   
-  // const sendMessage = (text, file = null, voice = null) => {
-  //   if (!activeChatId || !currentUser) return;
+      // Optionally: Show success notification / reset form
+      console.log('Group created successfully:', newGroup);
+      enqueueSnackbar('Group created successfully', { variant: 'success' });
+      return newGroup; // in case you want to use it after creation
+    } catch (error) {
+        console.error('Failed to create group:', error);
+        enqueueSnackbar('Failed to create group', { variant: 'error' });
+      }
+    };
 
-  //   const newMessage = {
-  //     id: Date.now().toString(),
-  //     sender: currentUser.id,
-  //     text,
-  //     file,
-  //     voice,
-  //     timestamp: new Date().toISOString(),
-  //   };
+    const addMemberToGroup = async (groupId, memberId) => {
+      try {
+        const response = await axios.post(`http://localhost:8080/api/group-chat/add-member/${groupId}/${memberId}`);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Failed to add member to group:', error);
+      }
+    };
+    
+    const addMembersToGroup = async (groupId, userIds) => {
+      try {
+        const params = new URLSearchParams();
+        params.append('groupId', groupId);
+        userIds.forEach(id => params.append('userIds', id));
+    
+        const response = await axios.post('http://localhost:8080/api/group-chat/add-members', params);
+        console.log(response.data);
+      } catch (error) {
+        console.error('Failed to add members to group:', error);
+      }
+    };
 
-  //   setMessages(prev => ({
-  //     ...prev,
-  //     [activeChatId]: [...(prev[activeChatId] || []), newMessage],
-  //   }));
-  // };
 
+
+    useEffect(() => {
+      const fetchGroupMessages = async (groupId, before = null, limit = 20) => {
+        try {
+          const params = new URLSearchParams({ limit });
+          if (before) {
+            params.append("before", before);
+          }
+    
+          const response = await axios.post(`http://localhost:8080/api/group-chat/${groupId}/messages?${params.toString()}`);
+          console.log("group messages Response Data", response.data);
+    
+          setGroupMessages(prev => ({
+            ...prev,
+            [groupId]: response.data,
+          }));
+    
+        } catch (error) {
+          console.error('Failed to fetch messages:', error);
+        }
+      };
+    
+      if (activeTab === 'department' && selectedGroupChat) {
+        fetchGroupMessages(selectedGroupChat);
+        console.log("Group chat Enabled");
+      }
+    
+    }, [activeTab, selectedGroupChat]);
+    
   const filteredContacts = contacts.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
@@ -255,6 +336,12 @@ useEffect(() => {
     searchQuery,
     setSearchQuery,
     sendMessage,
+    createChatGroup,
+    groups,
+    selectedGroupChat,
+    setSelectedGroupChat,
+    groupMessages: groupMessages[selectedGroupChat] || [],
+    setGroupMessages
   };
 
   return (

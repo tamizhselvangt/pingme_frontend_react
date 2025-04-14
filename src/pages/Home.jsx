@@ -67,7 +67,12 @@ const Home = () => {
     notices, 
     searchQuery, 
     setSearchQuery,
-    sendMessage
+    sendMessage,
+    groups,
+    selectedGroupChat,
+    setSelectedGroupChat,
+    groupMessages,
+    setGroupMessages
   } = useChat();
   
   const [messageText, setMessageText] = useState('');
@@ -96,7 +101,7 @@ const Home = () => {
 
   useEffect(() => {
     scrollToBottom();
-  }, [messages]);
+  }, [messages, groupMessages]);
 
   const handleProfileMenuOpen = (event) => {
     setAnchorEl(event.currentTarget);
@@ -195,6 +200,15 @@ const toggleSidebar = () => {
     setRecordedAudioFile(null);
   };
   
+  const displayName = () => {
+    if (activeTab === 'personal' && activeChatId) {
+      return contacts.find(c => c.id === activeChatId)?.name;
+    } else if (activeTab === 'department' && selectedGroupChat) {
+      return groups.find(g => g.id === selectedGroupChat)?.name;
+    }
+    return 'Select a chat';
+  };
+  
   const renderContacts = () => {
     if (activeTab === 'noticeboard') {
       return (
@@ -225,6 +239,45 @@ const toggleSidebar = () => {
         </List>
       );
     }
+    if (activeTab === 'department') {
+      return (
+        <List>
+          {groups.map((group) => (
+            <ListItem key={group.id}
+              button={true}
+              selected={activeChatId === group.id}
+              onClick={() => {
+                setSelectedGroupChat(group.id);
+                if (isMobile) {
+                  setSidebarOpen(false);
+                }
+              }}
+              sx={{
+                borderRadius: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'rgba(25, 118, 210, 0.2)',
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.3)'
+                  }
+                },
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.07)'
+                }
+              }}
+            >
+              <ListItemAvatar>
+                <Avatar src={group.avatar} alt={group.name} />
+              </ListItemAvatar>
+              <ListItemText primary={group.name}  secondary={group.description} 
+              primaryTypographyProps={{ color: 'white' }}
+              secondaryTypographyProps={{ color: 'rgba(255,255,255,0.6)' }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      );
+    }
+    
 
     return (
       <List>
@@ -234,7 +287,7 @@ const toggleSidebar = () => {
             button={true}
             selected={activeChatId === contact.id}
             onClick={() => {
-              setActiveChatId(contact.id);
+             setActiveChatId(contact.id); 
               if (isMobile) {
                 setSidebarOpen(false);
               }
@@ -290,6 +343,30 @@ const toggleSidebar = () => {
         </Box>
       );
     }
+    if (activeTab === 'department' && !selectedGroupChat) {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'rgba(255,255,255,0.5)',
+          bgcolor: '#FCFBFC',
+          width: '100%'
+         }}> 
+          <Box sx={{ textAlign: 'center' }}>
+            <TbMessageFilled style={{ fontSize: 80, opacity: 0.5, color: 'rgba(30, 30, 30, 0.64)' }}/>
+            <Typography variant="h6" sx={{ color: 'rgba(30, 30, 30, 0.64)' }}>
+              Select a conversation to start chatting
+            </Typography>
+          </Box>
+        </Box>
+      );
+    }
+
+ let currentMessages = [];
+ 
+ if (activeTab === 'department' && selectedGroupChat) {
+   currentMessages = groupMessages;
+ }
+ else{
+   currentMessages = messages;
+ }
 
     return (
       <Box
@@ -311,7 +388,7 @@ const toggleSidebar = () => {
               '-ms-overflow-style': 'none', // for Internet Explorer and Edge
               'scrollbar-width': 'none', // for Firefox
          }}>
-          {messages.map((message) => {
+          {currentMessages.map((message) => {
             const isOwnMessage = message.sender === currentUser?.id;
             return (
               <Box
@@ -596,7 +673,7 @@ const toggleSidebar = () => {
   const renderSidebar = () => {
     return (
       <Box 
-        sx={{
+        sx={ {
           width: 320,
           height: '100%',
           display: 'flex',
@@ -609,7 +686,7 @@ const toggleSidebar = () => {
           bgcolor: '#18181A',
           boxShadow: isMobile ? '0px 0px 15px rgba(0,0,0,0.2)' : 'none',
           ml: 2
-        }}
+        } }
       >
         {/* App Title */}
         <Box sx={{ p: 2, borderBottom: '1px solid rgba(255,255,255,0.1)' }}>
@@ -661,9 +738,7 @@ const toggleSidebar = () => {
               },
             }}
           />
-          {/* <IconButton sx={{ color: 'white' }} >
-            <TbLayoutGridAdd />
-          </IconButton> */}
+
           <ChatActions />
           </Box>
         </Box>
@@ -832,15 +907,22 @@ const toggleSidebar = () => {
             </IconButton>
           )}
           
-          {activeChatId && (
+          {activeChatId && activeTab === 'personal' && (
             <Avatar 
               src={contacts.find(c => c.id === activeChatId)?.avatar} 
               alt={contacts.find(c => c.id === activeChatId)?.name}
               sx={{ mr: 2 }}
             />
           )}
+          {selectedGroupChat && activeTab === 'department' && (
+            <Avatar 
+              src={groups.find(g => g.id === selectedGroupChat)?.groupImage} 
+              alt={groups.find(g => g.id === selectedGroupChat)?.name}
+              sx={{ mr: 2 }}
+            />
+          )}
           <Typography variant="h6" sx={{ flexGrow: 1, color: 'black', fontFamily: 'GeneralSans-SemiBold' }}>
-            {activeChatId ? contacts.find(c => c.id === activeChatId)?.name : 'Select a chat'}
+          {displayName()}
           </Typography>
 
           <IconButton sx={{ color: 'black' }} onClick={handleProfileMenuOpen}>
