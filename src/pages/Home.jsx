@@ -133,7 +133,7 @@ const truncateFileName = (fileName) => {
     navigate('/');
   };
 
-  var handleSendMessage = (e) => {
+var  handleSendMessage = (e) => {
     if (e) e.preventDefault();
     if (messageText.trim()) {
       if (selectedFile) {
@@ -203,7 +203,7 @@ const toggleSidebar = () => {
   const displayName = () => {
     if (activeTab === 'personal' && activeChatId) {
       return contacts.find(c => c.id === activeChatId)?.name;
-    } else if (activeTab === 'department' && selectedGroupChat) {
+    } else if (activeTab === 'groups' && selectedGroupChat) {
       return groups.find(g => g.id === selectedGroupChat)?.name;
     }
     return 'Select a chat';
@@ -239,7 +239,7 @@ const toggleSidebar = () => {
         </List>
       );
     }
-    if (activeTab === 'department') {
+    if (activeTab === 'groups') {
       return (
         <List>
           {groups.map((group) => (
@@ -343,7 +343,7 @@ const toggleSidebar = () => {
         </Box>
       );
     }
-    if (activeTab === 'department' && !selectedGroupChat) {
+    if (activeTab === 'groups' && !selectedGroupChat) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'rgba(255,255,255,0.5)',
           bgcolor: '#FCFBFC',
@@ -361,11 +361,12 @@ const toggleSidebar = () => {
 
  let currentMessages = [];
  
- if (activeTab === 'department' && selectedGroupChat) {
+ if (activeTab === 'groups' && selectedGroupChat) {
    currentMessages = groupMessages;
  }
  else{
    currentMessages = messages;
+   console.log(currentMessages);
  }
 
     return (
@@ -458,7 +459,7 @@ const toggleSidebar = () => {
                     </Typography> */}
                    {message.mediaData && message.mediaType && (
                             <MediaMessage 
-                              mediaData={message.mediaData}
+                              mediaUrl={message.mediaData}
                                mediaType={message.mediaType}
                               isYou={isOwnMessage}
                           />
@@ -914,7 +915,7 @@ const toggleSidebar = () => {
               sx={{ mr: 2 }}
             />
           )}
-          {selectedGroupChat && activeTab === 'department' && (
+          {selectedGroupChat && activeTab === 'groups' && (
             <Avatar 
               src={groups.find(g => g.id === selectedGroupChat)?.groupImage} 
               alt={groups.find(g => g.id === selectedGroupChat)?.name}

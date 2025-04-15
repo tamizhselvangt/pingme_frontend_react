@@ -1,9 +1,12 @@
-import React from 'react';
-import { Box } from '@mui/material';
-import AudioPlayer from 'react-h5-audio-player'
+import React, { useState } from 'react';
+import { Box, IconButton } from '@mui/material';
+import CloseIcon from '@mui/icons-material/Close';
+import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
-function MediaMessage({ mediaData, mediaType, isYou }) {
-  const mediaSrc = `data:${mediaType};base64,${mediaData}`;
+
+function MediaMessage({ mediaUrl, mediaType, isYou }) {
+  const [open, setOpen] = useState(false);
+
   const commonStyles = {
     p: 1,
     borderRadius: 2,
@@ -13,64 +16,133 @@ function MediaMessage({ mediaData, mediaType, isYou }) {
     mt: 1,
   };
 
+  const previewStyles = {
+    width: '250px',
+    height: '180px',
+    objectFit: 'cover',
+    borderRadius: '8px',
+    cursor: 'pointer',
+  };
+
+  const overlayStyles = {
+    position: 'fixed',
+    top: 0, left: 0,
+    width: '100vw',
+    height: '100vh',
+    bgcolor: 'rgba(0,0,0,0.7)',
+    backdropFilter: 'blur(5px)',
+    zIndex: 2000,
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    p: 2,
+  };
+
   if (mediaType?.startsWith('image/')) {
     return (
       <Box sx={commonStyles}>
         <Box
           component="img"
-          src={mediaSrc}
+          src={mediaUrl}
           alt="Image"
-          sx={{ width: '100%', borderRadius: 1 }}
+          sx={previewStyles}
+          onClick={() => setOpen(true)}
         />
+        {open && (
+          <Box sx={overlayStyles}>
+            <IconButton
+              onClick={() => setOpen(false)}
+              sx={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                color: 'white',
+                bgcolor: 'rgba(0,0,0,0.5)',
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+            <Box
+              component="img"
+              src={mediaUrl}
+              alt="Full Image"
+              sx={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                borderRadius: 2,
+                boxShadow: 5,
+              }}
+            />
+          </Box>
+        )}
       </Box>
     );
   }
+
   if (mediaType?.startsWith('video/')) {
     return (
       <Box sx={commonStyles}>
         <Box
           component="video"
-          src={mediaSrc}
-          controls
-          sx={{ width: '100%', borderRadius: 1 }}
+          src={mediaUrl}
+          sx={previewStyles}
+          onClick={() => setOpen(true)}
+          muted
         />
+        {open && (
+          <Box sx={overlayStyles}>
+            <IconButton
+              onClick={() => setOpen(false)}
+              sx={{
+                position: 'absolute',
+                top: 16,
+                right: 16,
+                color: 'white',
+                bgcolor: 'rgba(0,0,0,0.5)',
+              }}
+            >
+              <CloseIcon />
+            </IconButton>
+            <Box
+              component="video"
+              src={mediaUrl}
+              controls
+              autoPlay
+              sx={{
+                maxWidth: '90vw',
+                maxHeight: '90vh',
+                borderRadius: 2,
+                boxShadow: 5,
+              }}
+            />
+          </Box>
+        )}
       </Box>
     );
   }
 
   if (mediaType?.startsWith('audio')) {
     return (
-      <Box sx={{
-        ...commonStyles,
-          width: '350px',
-      }}>
-        
- <AudioPlayer
-           showSkipControls={false}
-           showFilledProgress={false}
-           showVolumeControls={false}
-           showDownloadProgress={false}
-           showJumpControls={false}
-           showFilledVolume={false}
-           hideVolume={true}
-           src={mediaSrc} 
-           layout='horizontal'
-           style={{
-            width: '100%',
-            height: '50px',
-           }}
-           customAdditionalControls={[]}
-           customVolumeControls={[]}
+      <Box sx={{ ...commonStyles, width: '350px' }}>
+        <AudioPlayer
+          showSkipControls={false}
+          showFilledProgress={false}
+          showVolumeControls={false}
+          showDownloadProgress={false}
+          showJumpControls={false}
+          showFilledVolume={false}
+          hideVolume={true}
+          src={mediaUrl}
+          layout='horizontal'
+          style={{ width: '100%', height: '50px' }}
+          customAdditionalControls={[]}
+          customVolumeControls={[]}
         />
-
       </Box>
-      
     );
   }
 
-   
-
-  return 'Media File';
+  return 'Unsupported Media Type';
 }
 
 export default MediaMessage;

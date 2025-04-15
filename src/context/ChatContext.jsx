@@ -130,7 +130,7 @@ useEffect(() => {
           text: msg.content,
           timestamp: new Date(msg.createdAt * 1000), // Assuming it's in seconds
           mediaType: msg.mediaType,
-          mediaData: msg.mediaData, 
+          mediaData: msg.mediaDataURL, 
         }));
         setMessages(prev => ({
           ...prev,
@@ -188,7 +188,7 @@ useEffect(() => {
             text: msg.content,
             timestamp: new Date(msg.createdAt * 1000),
             mediaType: msg.mediaType,
-            mediaData: msg.mediaData, // ✅ Make this direct
+            mediaData: msg.mediaDataURL, // ✅ Make this direct
           };
   
           setMessages(prev => ({
