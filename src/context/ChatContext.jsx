@@ -157,28 +157,48 @@ useEffect(() => {
     fetchGroups();
   }, [currentUser]);
   
-  const sendMessage = async (text, file = null, mediaType = null) => {
-    if (!activeChatId || !currentUser) return;
-  
+  const sendMessage = async (text, file = null, mediaType = null, onProgress = null) => {
+    if (!currentUser) return;
+
+    let messageType, recipientId;
+
+  if (activeTab === 'groups' && selectedGroupChat) {
+    messageType = "GROUP";
+    recipientId = selectedGroupChat;
+  } else if (activeChatId) {
+    messageType = "MESSAGE";
+    recipientId = activeChatId;
+  } else {
+    // No valid recipient — exit early
+    return;
+  }
     const baseMessage = {
+      messageType: messageType,
       senderId: currentUser.id,
-      recipientId: activeChatId,
-      content: text || '', // Always have content
+      recipientId: recipientId,
+      content: text || '',
       mediaType: mediaType,
     };
   
-    // If there's a file (image, video, audio)
     if (file && mediaType) {
       try {
         const formData = new FormData();
         formData.append("file", file);
         formData.append("message", new Blob([JSON.stringify(baseMessage)], { type: 'application/json' }));
   
-        const response = await axios.post('http://localhost:8080/api/messages/upload/media', formData, {
-          headers: {
-            'Content-Type': 'multipart/form-data'
+        const response = await axios.post(
+          'http://localhost:8080/api/messages/upload/media',
+          formData,
+          {
+            headers: {
+              'Content-Type': 'multipart/form-data'
+            },
+            onUploadProgress: (progressEvent) => {
+              const percentCompleted = Math.round((progressEvent.loaded * 100) / progressEvent.total);
+              if (onProgress) onProgress(percentCompleted);
+            }
           }
-        });
+        );
   
         if (response.status === 202) {
           const msg = response.data;
@@ -188,13 +208,20 @@ useEffect(() => {
             text: msg.content,
             timestamp: new Date(msg.createdAt * 1000),
             mediaType: msg.mediaType,
-            mediaData: msg.mediaDataURL, // ✅ Make this direct
+            mediaData: msg.mediaDataURL,
           };
   
-          setMessages(prev => ({
-            ...prev,
-            [activeChatId]: [...(prev[activeChatId] || []), sentMessage],
-          }));
+          if (messageType === "GROUP") {
+            setGroupMessages(prev => ({
+              ...prev,
+              [recipientId]: [...(prev[recipientId] || []), sentMessage],
+            }));
+          } else {
+            setMessages(prev => ({
+              ...prev,
+              [recipientId]: [...(prev[recipientId] || []), sentMessage],
+            }));
+          }
         } else {
           enqueueSnackbar('Failed to send media message', { variant: 'error' });
         }
@@ -224,10 +251,17 @@ useEffect(() => {
             mediaData: null, // ✅ Make this direct
           };
   
-          setMessages(prev => ({
-            ...prev,
-            [activeChatId]: [...(prev[activeChatId] || []), sentMessage],
-          }));
+          if (messageType === "GROUP") {
+            setGroupMessages(prev => ({
+              ...prev,
+              [recipientId]: [...(prev[recipientId] || []), sentMessage],
+            }));
+          } else {
+            setMessages(prev => ({
+              ...prev,
+              [recipientId]: [...(prev[recipientId] || []), sentMessage],
+            }));
+          }
         } else {
           enqueueSnackbar('Failed to send text message', { variant: 'error' });
         }
@@ -302,11 +336,20 @@ useEffect(() => {
           }
     
           const response = await axios.post(`http://localhost:8080/api/group-chat/${groupId}/messages?${params.toString()}`);
-          console.log("group messages Response Data", response.data);
+          
+          const fetchedGroupMessages = response.data.map((msg) => ({
+            id: msg.id,
+            sender: msg.senderId,
+            text: msg.content,
+            timestamp: new Date(msg.createdAt * 1000), // Assuming it's in seconds
+            mediaType: msg.mediaType,
+            mediaData: msg.mediaDataURL, 
+          }));
+
     
           setGroupMessages(prev => ({
             ...prev,
-            [groupId]: response.data,
+            [groupId]: fetchedGroupMessages,
           }));
     
         } catch (error) {
@@ -314,7 +357,7 @@ useEffect(() => {
         }
       };
     
-      if (activeTab === 'department' && selectedGroupChat) {
+      if (activeTab === 'groups' && selectedGroupChat) {
         fetchGroupMessages(selectedGroupChat);
         console.log("Group chat Enabled");
       }
@@ -341,7 +384,9 @@ useEffect(() => {
     selectedGroupChat,
     setSelectedGroupChat,
     groupMessages: groupMessages[selectedGroupChat] || [],
-    setGroupMessages
+    setGroupMessages,
+    addMemberToGroup,
+    addMembersToGroup
   };
 
   return (

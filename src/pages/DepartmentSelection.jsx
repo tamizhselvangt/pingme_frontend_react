@@ -72,7 +72,7 @@ const DepartmentSelection = () => {
         id: response.data.id,
         name: response.data.name,
         email: response.data.email,
-        profileImage: response.data.photoURL,
+        profileImage: response.data.profileImage,
         departmentId: response.data.departmentId
       };
       console.log('Authentication Response Data: ',responseData);

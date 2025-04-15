@@ -144,16 +144,48 @@ var  handleSendMessage = (e) => {
       setMessageText('');
       setSelectedFile(null);
     }
-    if(selectedFile) {
-      sendMessage('', selectedFile, selectedFile.type);
-      setSelectedFile(null);
-      setMessageText('');
-    }
+
     if(recordedAudioFile) {
       handleSendAudioMessage();
     }
   };
 
+  var handleSendMessage = (e) => {
+    if (e) e.preventDefault();
+    if (messageText.trim()) {
+      if (selectedFile) {
+        setIsPrgressShown(true);
+        sendMessage(messageText, selectedFile, selectedFile.type, (progress) => {
+          setUploadProgress(progress);
+          if (progress >= 100) {
+            setIsPrgressShown(false);
+            setSelectedFile(null);
+            setUploadProgress(0);
+          }
+        });
+      } else {
+        sendMessage(messageText);
+      }
+      setMessageText('');
+    }
+    if(selectedFile) {
+      sendMessage('', selectedFile, selectedFile.type,(progress) => {
+        setUploadProgress(progress);
+        if (progress >= 100) {
+          setIsPrgressShown(false);
+          setSelectedFile(null);
+          setUploadProgress(0);
+        }
+      });
+      setSelectedFile(null);
+      setMessageText('');
+    }
+  
+    if (recordedAudioFile) {
+      handleSendAudioMessage();
+    }
+  };
+  
 
 const toggleSidebar = () => {
     setSidebarOpen(!sidebarOpen);
@@ -366,7 +398,6 @@ const toggleSidebar = () => {
  }
  else{
    currentMessages = messages;
-   console.log(currentMessages);
  }
 
     return (
@@ -400,18 +431,22 @@ const toggleSidebar = () => {
                 width="80%"
                 key={message.id}
               >
-                {/* Avatar */}
-                {!isOwnMessage && activeChatId && (
-                  <Avatar
-                    src={contacts.find(c => c.id === activeChatId)?.avatar}
-                    alt={contacts.find(c => c.id === activeChatId)?.name}
-                    sx={{ width: 40, height: 40, borderRadius: 1.5, mt: 0.5 }}
-                  />
-                )}
+                {!isOwnMessage && (
+              <Avatar
+                src={
+                 contacts.find(c => c.id === String(message.sender))?.avatar
+              
+               }
+             alt={
+             contacts.find(c => c.id === String(message.sender))?.name}
+              sx={{ width: 40, height: 40, borderRadius: 1.5, mt: 0.5 }}
+               />
+             )}
+
               
                 {isOwnMessage && (
                   <Avatar
-                    src={currentUser?.photoURL}
+                    src={currentUser?.profileImage}
                     alt={currentUser?.name}
                     sx={{ width: 40, height: 40, borderRadius: 1.5, mt: 0.5 }}
                   />
@@ -422,15 +457,16 @@ const toggleSidebar = () => {
                   
                   {/* Name & Time */}
                   <Box display="flex" alignItems="center" gap={1} mt='1'>
-                   { !isOwnMessage &&  activeChatId && (
-                      <Typography variant="subtitle2" color="black"  sx={{ fontFamily: 'GeneralSans-SemiBold' }}>
-                        {contacts.find(c => c.id === activeChatId)?.name}
-                      </Typography>
-                    )
-                    }
+                  {!isOwnMessage && (
+  <Typography variant="subtitle2" color="black" sx={{ fontFamily: 'GeneralSans-SemiBold' }}>
+    { contacts.find(c => c.id === String(message.sender))?.name}
+  </Typography>
+)}
+
                     { isOwnMessage &&  activeChatId && (
                       <Typography variant="subtitle2" color="black" fontWeight="bold" sx={{ fontFamily: 'GeneralSans-SemiBold' }}>
-                        {currentUser?.name}
+                  
+                        You
                       </Typography>
                     )
                     }
@@ -949,7 +985,7 @@ const toggleSidebar = () => {
       >
         <MenuItem onClick={handleProfileMenuClose}>
           <ListItemAvatar>
-            <Avatar src={currentUser?.photoURL} alt={currentUser?.name} />
+            <Avatar src={currentUser?.profileImage} alt={currentUser?.name} />
           </ListItemAvatar>
           <ListItemText 
             primary={currentUser?.name} 

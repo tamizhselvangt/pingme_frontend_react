@@ -8,7 +8,9 @@ export default function ChatActions() {
   const { 
     contacts,
     createChatGroup,
-    groups
+    groups,
+    addMemberToGroup,
+    addMembersToGroup
   } = useChat();
   const [open, setOpen] = useState(false);
   const [modalView, setModalView] = useState('home');
@@ -45,7 +47,8 @@ export default function ChatActions() {
     // Logic to add selectedContacts to selectedGroup
     console.log(`Added [${selectedContacts.join(', ')}] to ${selectedGroup}`);
     console.log("selectedContacts,selectedGroup",selectedContacts,selectedGroup);
-    // addMembersToGroup(selectedGroup.id, selectedContacts);
+    
+    addMembersToGroup(selectedGroup.id, selectedContacts);
     setModalView('done');
   };
 
@@ -240,8 +243,8 @@ export default function ChatActions() {
                 <List>
                   {contacts.map((contact) => (
                     <ListItem key={contact.id} disablePadding>
-                      <ListItemButton onClick={() => toggleContact(contact.name)}>
-                        <Checkbox edge="start" checked={selectedContacts.includes(contact.name)} />
+                      <ListItemButton onClick={() => toggleContact(contact.id)}>
+                        <Checkbox edge="start" checked={selectedContacts.includes(contact.id)} />
                         <ListItemText primary={contact.name} />
                       </ListItemButton>
                     </ListItem>
