@@ -5,8 +5,11 @@ import { useSnackbar } from 'notistack';
 import SockJS from 'sockjs-client/dist/sockjs';
 import { Client } from '@stomp/stompjs';
 import { showMessageNotification } from '../components/showMessageNotification';
+import { showNewUserNotification } from '../components/showNewUserNotification';
 
 const ChatContext = createContext();
+
+const url = "http://localhost:8080";
 
 export const useChat = () => useContext(ChatContext);
 
@@ -23,56 +26,169 @@ export const ChatProvider = ({ children }) => {
   const [groups, setGroups] = useState([]);
   const [selectedGroupChat, setSelectedGroupChat] = useState(null);
   const [groupMessages, setGroupMessages] = useState({});
+  const [departments, setDepartments] = useState([]);
+  const activeChatIdRef = useRef(activeChatId);
 
+
+  useEffect(() => {
+    activeChatIdRef.current = activeChatId;
+  }, [activeChatId]);
+
+  const fetchDepartments = async () => {
+    try {
+      const response = await axios.get(`${url}/api/departments/all`);
+      console.log("Departments:", response.data);
+      setDepartments(response.data);
+    } catch (error) {
+      enqueueSnackbar('Error fetching departments', { variant: 'error' });
+    }
+  };
+  
   // Socket connection Handling
-useEffect(() => {
+  useEffect(() => {
     if (!currentUser) return;
-    const socket = new SockJS('http://localhost:8080/ws');
-    const stompClient = new Client({
-      webSocketFactory: () => socket,
-      reconnectDelay: 5000,
-      onConnect: () => {
-        console.log('Connected to WebSocket');
-        // Subscribe to personal message queue
-        stompClient.subscribe(`/user/${currentUser.id}/queue/messages`, (message) => {
-          const body = JSON.parse(message.body);
-          const incomingMessage = {
-            id: Date.now().toString(), // Optional unique ID
-            sender: body.senderId,
-            text: body.content,
-            timestamp: new Date(),
-            // Customize handling media if needed
-          };
+    
+    const connectToWebSocket = () => {
+      const socket = new SockJS(`${url}/ws`);
+      const stompClient = new Client({
+        webSocketFactory: () => socket,
+        reconnectDelay: 5000,
+        onConnect: () => {
+          console.log('Connected to WebSocket');
+          fetchDepartments();
+          // Subscribe to personal message queue
+          stompClient.subscribe(`/user/${currentUser.id}/queue/messages`, (message) => {
+            const body = JSON.parse(message.body);
+            const incomingMessage = 
+            {
+              id: body.id,
+              sender: body.senderId,
+              text: body.content,
+              timestamp: new Date(body.createdAt * 1000), 
+              mediaType: body.mediaType,
+              mediaData: body.mediaDataURL, 
+            }
 
-          const senderId = body.senderId;
+            const senderId = body.senderId;
+            if(body.messageType === "GROUP"){
+              setGroupMessages((prev) => ({
+                ...prev,
+                [senderId]: [...(prev[senderId] || []), incomingMessage],
+              }));
+            }else{
+              setMessages((prev) => ({
+                ...prev,
+                [senderId]: [...(prev[senderId] || []), incomingMessage],
+              }));
+            }
+            const username = contacts.find(c => c.id === senderId)?.name;
+            const avatarUrl = contacts.find(c => c.id === senderId)?.avatar;
 
-          setMessages((prev) => ({
-            ...prev,
-            [senderId]: [...(prev[senderId] || []), incomingMessage],
-          }));
-          if(senderId !== activeChatId){
-            const notification = {
-              name: body.username,
-              avatarUrl: body.profile
-            };
-            showMessageNotification(notification);
+            if(senderId !== Number(activeChatIdRef.current)){
+              const notification = {
+                name: username,
+                avatarUrl: avatarUrl
+              };
+              showMessageNotification(notification);
+            }
+          });
+
+          stompClient.subscribe(`/topic/users`, (message) => {
+         const newMessage = JSON.parse(message.body);
+
+          const newUser = {
+            id: newMessage.id.toString(),
+            name: newMessage.name,
+            email: newMessage.email,
+            departmentId: newMessage.departmentId,
+            status: newMessage.status?.toLowerCase(), 
+            avatar: newMessage.profileImage,
           }
-        });
-      },
-      onStompError: (frame) => {
-        console.error('WebSocket error:', frame.headers['message']);
-      }
-    });
+          console.log("New User: boolean", !contacts.some(contact => contact.id === newUser.id));
 
-    stompClient.activate();
-    stompClientRef.current = stompClient;
+          if(!contacts.some(contact => contact.id === newUser.id)){
+            console.log("New User: boolean", newUser.id !== currentUser.id);
+            if(newUser.id !== currentUser.id){
+              setContacts((prev) => [...prev, newUser]);
+              const notification = {
+                name: newUser.name,
+                avatarUrl: newUser.avatar
+              };
+              showNewUserNotification(notification);
+            }
+            
+          }else{
+            setContacts((prev) => prev.map(contact => contact.id === newUser.id ? newUser : contact));
+          }
+});
+
+          
+          // Now that we're connected, fetch groups and subscribe
+          fetchGroupsAndSubscribe(stompClient);
+        },
+        onStompError: (frame) => {
+          console.error('WebSocket error:', frame.headers['message']);
+        }
+      });
+
+      stompClient.activate();
+      stompClientRef.current = stompClient;
+    };
+
+    connectToWebSocket();
 
     return () => {
-      stompClient.deactivate();
+      if (stompClientRef.current) {
+        stompClientRef.current.deactivate();
+      }
     };
   }, [currentUser]);
 
+  useEffect(() => {
+    if (activeTab === 'groups' && selectedGroupChat) {
+      fetchGroupsAndSubscribe(stompClientRef.current);
+    }
+  }, [activeTab, selectedGroupChat]);
 
+  // Function to fetch groups and subscribe to them
+  const fetchGroupsAndSubscribe = async (stompClient) => {
+    if (!currentUser) return;
+    
+    try {
+      const response = await axios.post(`${url}/api/group-chat/user/${currentUser.id}`);
+      const groups = response.data;
+      setGroups(groups);
+
+      // Subscribe to each group topic
+      groups.forEach(group => {
+        stompClient.subscribe(`/topic/group/${group.id}`, (message) => {
+          const body = JSON.parse(message.body);
+          const incomingMessage = {
+            id: body.id,
+            sender: body.senderId,
+            text: body.content,
+            timestamp: new Date(body.createdAt * 1000),
+            mediaType: body.mediaType,
+            mediaData: body.mediaDataURL,
+          };
+
+
+          setGroupMessages(prev => ({
+            ...prev,
+            [group.id]: [...(prev[group.id] || []), incomingMessage],
+          }));
+
+          if (group.id !== activeChatIdRef.current) {
+            const groupName = groups.find(g => g.id === group.id)?.name;
+            const avatarUrl = groups.find(g => g.id === group.id)?.avatar;
+            showMessageNotification({ name: groupName, avatarUrl: avatarUrl });
+          }
+        });
+      });
+    } catch (error) {
+      console.error('Failed to fetch groups or subscribe:', error);
+    }
+  };
   
   // Fetch All Users for contacts
   useEffect(() => {
@@ -80,7 +196,7 @@ useEffect(() => {
       try {
         if (currentUser) {
           
-          const response = await axios.post('http://localhost:8080/api/users/all');
+          const response = await axios.post(`${url}/api/users/all`);
           const users = response.data;
 
           // Optional: filter or categorize based on activeTab here
@@ -89,6 +205,8 @@ useEffect(() => {
             .map(user => ({
               id: user.id.toString(),
               name: user.name,
+              email: user.email,
+              departmentId: user.departmentId,
               status: user.status?.toLowerCase(), // assuming API returns ONLINE/OFFLINE
               avatar: user.profileImage,
             }));
@@ -106,15 +224,18 @@ useEffect(() => {
   // Mock data for notices
   useEffect(() => {
     if (activeTab === 'noticeboard') {
-      const mockNotices = [
-        { id: '1', title: 'Company Meeting', content: 'Monthly company meeting on Friday', date: '2023-04-01', author: 'Admin' },
-        { id: '2', title: 'Holiday Notice', content: 'Office will be closed on Monday', date: '2023-03-28', author: 'HR' },
-        { id: '3', title: 'New Policy', content: 'New work from home policy effective next week', date: '2023-03-25', author: 'Admin' },
-      ];
-      setNotices(mockNotices);
+      const fetchNotices = async () => {
+        try {
+          const response = await axios.post(`${url}/api/notices/all`);
+          console.log("Notices:", response.data);
+          setNotices(response.data);
+        } catch (error) {
+          enqueueSnackbar('Error fetching notices', { variant: 'error' });
+        }
+      };
+      fetchNotices();
     }
   }, [activeTab]);
-
 
   //Fetch messages from backend
   useEffect(() => {
@@ -122,7 +243,7 @@ useEffect(() => {
       if (!activeChatId || !currentUser?.id) return;
     
       try {
-        const response = await axios.post(`http://localhost:8080/api/messages/messages/${currentUser.id}/${activeChatId}`);
+        const response = await axios.post(`${url}/api/messages/messages/${currentUser.id}/${activeChatId}`);
       
         const fetchedMessages = response.data.map((msg) => ({
           id: msg.id,
@@ -144,34 +265,22 @@ useEffect(() => {
     fetchMessages();
   }, [activeChatId, currentUser]);
 
-  useEffect(() => {
-    const fetchGroups = async () => {
-      try {
-        const response = await axios.post(`http://localhost:8080/api/group-chat/user/${currentUser.id}`);
-        setGroups(response.data);
-        console.log(response.data);
-      } catch (error) {
-        console.error('Failed to fetch groups:', error);  
-      }
-    };
-    fetchGroups();
-  }, [currentUser]);
-  
   const sendMessage = async (text, file = null, mediaType = null, onProgress = null) => {
     if (!currentUser) return;
 
     let messageType, recipientId;
 
-  if (activeTab === 'groups' && selectedGroupChat) {
-    messageType = "GROUP";
-    recipientId = selectedGroupChat;
-  } else if (activeChatId) {
-    messageType = "MESSAGE";
-    recipientId = activeChatId;
-  } else {
-    // No valid recipient — exit early
-    return;
-  }
+    if (activeTab === 'groups' && selectedGroupChat) {
+      messageType = "GROUP";
+      recipientId = selectedGroupChat;
+    } else if (activeChatId) {
+      messageType = "MESSAGE";
+      recipientId = activeChatId;
+    } else {
+      // No valid recipient — exit early
+      return;
+    }
+    
     const baseMessage = {
       messageType: messageType,
       senderId: currentUser.id,
@@ -187,7 +296,7 @@ useEffect(() => {
         formData.append("message", new Blob([JSON.stringify(baseMessage)], { type: 'application/json' }));
   
         const response = await axios.post(
-          'http://localhost:8080/api/messages/upload/media',
+              `${url}/api/messages/upload/media`,
           formData,
           {
             headers: {
@@ -235,7 +344,7 @@ useEffect(() => {
     // Else: Text-only message
     if (text) {
       try {
-        const response = await axios.post('http://localhost:8080/api/messages/send', {
+        const response = await axios.post(`${url}/api/messages/send`, {
           ...baseMessage,
           mediaData: null,
         });
@@ -246,9 +355,9 @@ useEffect(() => {
             id: msg.id,
             sender: msg.senderId,
             text: msg.content,
-            timestamp: new Date(msg.timestamp * 1000),
+            timestamp: new Date(msg.createdAt * 1000),
             mediaType: null,
-            mediaData: null, // ✅ Make this direct
+            mediaData: null, 
           };
   
           if (messageType === "GROUP") {
@@ -272,10 +381,9 @@ useEffect(() => {
     }
   };
 
-
   const createChatGroup = async (groupDetails) => {
     if (groupDetails.groupName.trim() === '') {
-     enqueueSnackbar('Group Name is required', { variant: 'error' });
+      enqueueSnackbar('Group Name is required', { variant: 'error' });
       return;
     }
     const groupPayload = {
@@ -284,85 +392,101 @@ useEffect(() => {
       creatorId: currentUser.id,
       departmentId: currentUser.departmentId
     };
-    console.log(groupPayload);
+    console.log("Group Payload:", groupPayload);
     try {
       // Post to your Spring backend
-      const response = await axios.post('http://localhost:8080/api/group-chat/create', groupPayload);
+      const response = await axios.post(`${url}/api/group-chat/create`, groupPayload);
       const newGroup = response.data;
   
       // Update state — assuming 'groups' state exists
       setGroups(prevGroups => [...prevGroups, newGroup]);
   
       // Optionally: Show success notification / reset form
-      console.log('Group created successfully:', newGroup);
       enqueueSnackbar('Group created successfully', { variant: 'success' });
-      return newGroup; // in case you want to use it after creation
-    } catch (error) {
-        console.error('Failed to create group:', error);
-        enqueueSnackbar('Failed to create group', { variant: 'error' });
-      }
-    };
-
-    const addMemberToGroup = async (groupId, memberId) => {
-      try {
-        const response = await axios.post(`http://localhost:8080/api/group-chat/add-member/${groupId}/${memberId}`);
-        console.log(response.data);
-      } catch (error) {
-        console.error('Failed to add member to group:', error);
-      }
-    };
-    
-    const addMembersToGroup = async (groupId, userIds) => {
-      try {
-        const params = new URLSearchParams();
-        params.append('groupId', groupId);
-        userIds.forEach(id => params.append('userIds', id));
-    
-        const response = await axios.post('http://localhost:8080/api/group-chat/add-members', params);
-        console.log(response.data);
-      } catch (error) {
-        console.error('Failed to add members to group:', error);
-      }
-    };
-
-
-
-    useEffect(() => {
-      const fetchGroupMessages = async (groupId, before = null, limit = 20) => {
-        try {
-          const params = new URLSearchParams({ limit });
-          if (before) {
-            params.append("before", before);
-          }
-    
-          const response = await axios.post(`http://localhost:8080/api/group-chat/${groupId}/messages?${params.toString()}`);
+      
+      // Subscribe to the new group if we have an active stomp client
+      if (stompClientRef.current && stompClientRef.current.connected) {
+        stompClientRef.current.subscribe(`/topic/group/${newGroup.id}`, (message) => {
+          const body = JSON.parse(message.body);
+          const incomingMessage = {
+            id: body.id,
+            sender: body.senderId,
+            text: body.content,
+            timestamp: new Date(body.createdAt * 1000),
+            mediaType: body.mediaType,
+            mediaData: body.mediaDataURL,
+          };
           
-          const fetchedGroupMessages = response.data.map((msg) => ({
-            id: msg.id,
-            sender: msg.senderId,
-            text: msg.content,
-            timestamp: new Date(msg.createdAt * 1000), // Assuming it's in seconds
-            mediaType: msg.mediaType,
-            mediaData: msg.mediaDataURL, 
-          }));
-
-    
           setGroupMessages(prev => ({
             ...prev,
-            [groupId]: fetchedGroupMessages,
+            [newGroup.id]: [...(prev[newGroup.id] || []), incomingMessage],
           }));
-    
-        } catch (error) {
-          console.error('Failed to fetch messages:', error);
-        }
-      };
-    
-      if (activeTab === 'groups' && selectedGroupChat) {
-        fetchGroupMessages(selectedGroupChat);
-        console.log("Group chat Enabled");
+        });
       }
+      
+      return newGroup; // in case you want to use it after creation
+    } catch (error) {
+      console.error('Failed to create group:', error);
+      enqueueSnackbar('Failed to create group', { variant: 'error' });
+    }
+  };
+
+  const addMemberToGroup = async (groupId, memberId) => {
+    try {
+      const response = await axios.post(`${url}/api/group-chat/add-member/${groupId}/${memberId}`);
+      console.log(response.data);
+    } catch (error) {
+      console.error('Failed to add member to group:', error);
+    }
+  };
     
-    }, [activeTab, selectedGroupChat]);
+  const addMembersToGroup = async (groupId, userIds) => {
+    try {
+      const params = new URLSearchParams();
+      params.append('groupId', groupId);
+      userIds.forEach(id => params.append('userIds', id));
+  
+      const response = await axios.post(`${url}/api/group-chat/add-members`, params);
+      console.log(response.data);
+    } catch (error) {
+      console.error('Failed to add members to group:', error);
+    }
+  };
+
+  useEffect(() => {
+    const fetchGroupMessages = async (groupId, before = null, limit = 20) => {
+      try {
+        const params = new URLSearchParams({ limit });
+        if (before) {
+          params.append("before", before);
+        }
+  
+        const response = await axios.post(`${url}/api/group-chat/${groupId}/messages?${params.toString()}`);
+        
+        const fetchedGroupMessages = response.data.map((msg) => ({
+          id: msg.id,
+          sender: msg.senderId,
+          text: msg.content,
+          timestamp: new Date(msg.createdAt * 1000), // Assuming it's in seconds
+          mediaType: msg.mediaType,
+          mediaData: msg.mediaDataURL, 
+        }));
+
+        setGroupMessages(prev => ({
+          ...prev,
+          [groupId]: fetchedGroupMessages,
+        }));
+  
+      } catch (error) {
+        console.error('Failed to fetch messages:', error);
+      }
+    };
+  
+    if (activeTab === 'groups' && selectedGroupChat) {
+      fetchGroupMessages(selectedGroupChat);
+    }
+  
+  }, [activeTab, selectedGroupChat]);
     
   const filteredContacts = contacts.filter(contact => 
     contact.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -370,7 +494,7 @@ useEffect(() => {
 
   const value = {
     contacts: filteredContacts,
-    messages: messages[activeChatId] || [],
+    messages: messages[activeChatIdRef.current] || [],
     activeChatId,
     setActiveChatId,
     activeTab,
@@ -386,7 +510,9 @@ useEffect(() => {
     groupMessages: groupMessages[selectedGroupChat] || [],
     setGroupMessages,
     addMemberToGroup,
-    addMembersToGroup
+    addMembersToGroup,
+    departments,
+    fetchDepartments
   };
 
   return (
@@ -394,4 +520,4 @@ useEffect(() => {
       {children}
     </ChatContext.Provider>
   );
-}; 
+};

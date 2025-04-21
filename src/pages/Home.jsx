@@ -47,10 +47,11 @@ import { IoCloseCircleOutline } from "react-icons/io5";
 import { MdOutlineFilePresent } from "react-icons/md";
 import  AudioRecorder  from '../components/AudioRecorder';
 import MediaMessage from '../components/MediaMessage';
-import { MdOutlineAddReaction } from "react-icons/md";
-import { TbLayoutGridAdd } from "react-icons/tb";
-import ChatActions from '../components/ChatActions';
-
+  import { MdOutlineAddReaction } from "react-icons/md";
+  import { TbLayoutGridAdd } from "react-icons/tb";
+  import PriorityHighIcon from '@mui/icons-material/PriorityHigh';
+import GroupChatActions from '../components/GroupChatActions';
+import ContactInfoPanel from '../components/ContactInfoPanel';
 const Home = () => {
   const navigate = useNavigate();
   const theme = useTheme();
@@ -72,7 +73,9 @@ const Home = () => {
     selectedGroupChat,
     setSelectedGroupChat,
     groupMessages,
-    setGroupMessages
+    setGroupMessages,
+    departments,
+    fetchDepartments
   } = useChat();
   
   const [messageText, setMessageText] = useState('');
@@ -82,6 +85,7 @@ const Home = () => {
   const [selectedFile, setSelectedFile] = useState(null);
   const [isPrgressShown, setIsPrgressShown] = useState(false); // Default: not uploading
   const messagesEndRef = useRef(null);
+  const [showGroupInfo, setShowGroupInfo] = useState(false);
 
   //Voice Recorder Handling
   const [uploadingAudio, setUploadingAudio] = useState(false);
@@ -90,6 +94,9 @@ const Home = () => {
 
 
 
+   const toggleGroupInfo = () => {
+    setShowGroupInfo(prev => !prev);
+  };
   // Check if the window is small on initial load and when window is resized
   useEffect(() => {
     setSidebarOpen(!isMobile);
@@ -112,6 +119,10 @@ const getSelectedFileSize = (file) => {
   if (file.size === 0) return '0 Byte';
   const i = parseInt(Math.floor(Math.log(file.size) / Math.log(1024)));
   return Math.round(file.size / Math.pow(1024, i), 2) + ' ' + sizes[i];
+};
+const getDepartmentName = (departmentId) => {
+  const department = departments.find((dept) => dept.id === departmentId);
+  return department ? department.name : 'Unknown';
 };
 
 
@@ -237,7 +248,9 @@ const toggleSidebar = () => {
       return contacts.find(c => c.id === activeChatId)?.name;
     } else if (activeTab === 'groups' && selectedGroupChat) {
       return groups.find(g => g.id === selectedGroupChat)?.name;
-    }
+    } else if (activeTab === 'department' && currentUser?.departmentId) {
+      return contacts.find(c => c.id === activeChatId)?.name;
+}
     return 'Select a chat';
   };
   
@@ -249,6 +262,7 @@ const toggleSidebar = () => {
             <ListItem 
               key={notice.id} 
               button 
+              cursor="pointer"
               onClick={() => setShowNotices(true)}
               sx={{ 
                 borderLeft: '4px solid',
@@ -262,7 +276,7 @@ const toggleSidebar = () => {
             >
               <ListItemText 
                 primary={notice.title} 
-                secondary={`${notice.date} - ${notice.author}`}
+                secondary={`${new Date(notice.createdAt * 1000).toLocaleDateString()} - ${getDepartmentName(notice.departmentId)}`}
                 primaryTypographyProps={{ color: 'white' }}
                 secondaryTypographyProps={{ color: 'rgba(255,255,255,0.6)' }}
               />
@@ -278,6 +292,7 @@ const toggleSidebar = () => {
             <ListItem key={group.id}
               button={true}
               selected={activeChatId === group.id}
+              cursor="pointer"
               onClick={() => {
                 setSelectedGroupChat(group.id);
                 if (isMobile) {
@@ -310,6 +325,57 @@ const toggleSidebar = () => {
       );
     }
     
+    if(activeTab === 'department'){
+      const departmentContacts = contacts.filter(contact => contact.departmentId === currentUser?.departmentId);
+      return (
+        <List>
+          {departmentContacts.map((contact) => (
+            <ListItem 
+              key={contact.id} 
+              button={true}
+              selected={activeChatId === contact.id}
+              cursor="pointer"
+              onClick={() => {
+               setActiveChatId(contact.id); 
+                if (isMobile) {
+                  setSidebarOpen(false);
+                }
+              }}
+              sx={{
+                borderRadius: 1,
+                '&.Mui-selected': {
+                  bgcolor: 'rgba(25, 118, 210, 0.2)',
+                  '&:hover': {
+                    bgcolor: 'rgba(25, 118, 210, 0.3)'
+                  }
+                },
+                '&:hover': {
+                  bgcolor: 'rgba(255,255,255,0.07)'
+                }
+              }}
+            >
+              <ListItemAvatar>
+                <Badge 
+                  color={contact.status === 'online' ? 'success' : 'default'} 
+                  variant="dot"
+                  overlap="circular"
+                  anchorOrigin={{ vertical: 'bottom', horizontal: 'right' }}
+                >
+                  <Avatar src={contact.avatar} alt={contact.name} />
+                </Badge>
+              </ListItemAvatar>
+              <ListItemText 
+                cursor="pointer"
+                primary={contact.name} 
+                secondary={contact.members ? `${contact.members} members` : contact.status}
+                primaryTypographyProps={{ color: 'white' }}
+                secondaryTypographyProps={{ color: 'rgba(255,255,255,0.6)' }}
+              />
+            </ListItem>
+          ))}
+        </List>
+      );
+    }
 
     return (
       <List>
@@ -318,6 +384,7 @@ const toggleSidebar = () => {
             key={contact.id} 
             button={true}
             selected={activeChatId === contact.id}
+            cursor="pointer"
             onClick={() => {
              setActiveChatId(contact.id); 
               if (isMobile) {
@@ -360,7 +427,22 @@ const toggleSidebar = () => {
   };
 
   const renderMessages = () => {
-    if (!activeChatId) {
+    if (activeTab === 'noticeboard') {
+      return (
+        <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'rgba(255,255,255,0.5)',
+          bgcolor: '#FCFBFC',
+          width: '100%'
+         }}> 
+          <Box sx={{ textAlign: 'center' }}>
+            <TbMessageFilled style={{ fontSize: 80, opacity: 0.5, color: 'rgba(30, 30, 30, 0.64)' }}/>
+            <Typography variant="h6" sx={{ color: 'rgba(30, 30, 30, 0.64)' }}>
+              Select a conversation to start chatting
+            </Typography>
+          </Box>
+        </Box>
+      );
+    }
+    if (!activeChatId && activeTab === 'noticeboard' && activeTab !== 'groups' && activeTab !== 'department' ) {
       return (
         <Box sx={{ display: 'flex', justifyContent: 'center', alignItems: 'center', height: '100%', color: 'rgba(255,255,255,0.5)',
           bgcolor: '#FCFBFC',
@@ -550,7 +632,16 @@ const toggleSidebar = () => {
       <input
         id="fileInput"
         type="file"
-        accept="image/*,video/*,audio/*"
+        accept="
+        image/*,
+        video/*,
+        audio/*,
+        application/pdf,
+        application/msword,
+        application/vnd.openxmlformats-officedocument.wordprocessingml.document,
+        application/vnd.ms-excel,
+        application/vnd.openxmlformats-officedocument.spreadsheetml.sheet,
+        text/plain"
         style={{ display: 'none' }}
         onChange={(e) => setSelectedFile(e.target.files[0])}
       />
@@ -694,13 +785,25 @@ const toggleSidebar = () => {
           </Typography>
           <List>
             {notices.map((notice) => (
+             
+
               <Paper key={notice.id} sx={{ p: 2, mb: 2, bgcolor: '#37353F', color: 'white', borderRadius: 5 }}>
-                <Typography variant="h6">{notice.title}</Typography>
+                <Box sx={{ display: 'flex', alignItems: 'center', mb: 1 }}>
+                  <Typography variant="h6" sx={{ flexGrow: 1 }}>
+                    {notice.title}
+                  </Typography>
+                  {notice.isImportant && (
+                    <PriorityHighIcon sx={{ color: 'red', ml: 1 }} />
+                  )}
+                </Box>
+              
                 <Typography variant="body2" color="rgba(255,255,255,0.6)" gutterBottom>
-                  {new Date(notice.date).toLocaleDateString()} - {notice.author}
+                  {new Date(notice.createdAt * 1000).toLocaleDateString()} — {getDepartmentName(notice.departmentId)}
                 </Typography>
+              
                 <Typography>{notice.content}</Typography>
               </Paper>
+              
             ))}
           </List>
         </Box>
@@ -776,7 +879,7 @@ const toggleSidebar = () => {
             }}
           />
 
-          <ChatActions />
+          <GroupChatActions />
           </Box>
         </Box>
 
@@ -951,6 +1054,13 @@ const toggleSidebar = () => {
               sx={{ mr: 2 }}
             />
           )}
+           {activeChatId && activeTab === 'department' && (
+            <Avatar 
+              src={contacts.find(c => c.id === activeChatId)?.avatar} 
+              alt={contacts.find(c => c.id === activeChatId)?.name}
+              sx={{ mr: 2 }}
+            />
+          )}
           {selectedGroupChat && activeTab === 'groups' && (
             <Avatar 
               src={groups.find(g => g.id === selectedGroupChat)?.groupImage} 
@@ -958,9 +1068,25 @@ const toggleSidebar = () => {
               sx={{ mr: 2 }}
             />
           )}
+
           <Typography variant="h6" sx={{ flexGrow: 1, color: 'black', fontFamily: 'GeneralSans-SemiBold' }}>
-          {displayName()}
+           {displayName()} 
           </Typography>
+          
+          <Button onClick={toggleGroupInfo} sx={{ color: 'black', fontFamily: 'GeneralSans-SemiBold' }}>
+            <Typography variant="subtitle2">
+              Info
+            </Typography>
+          </Button>
+
+      {/* Slide-in panel for group info */}
+      {showGroupInfo && (
+        <ContactInfoPanel 
+          onClose={() => setShowGroupInfo(false)} 
+          groupId={activeTab === 'groups' ? selectedGroupChat : null} 
+          chatId={ activeTab !== 'groups' ? activeChatId : null}
+        />
+      )}
 
           <IconButton sx={{ color: 'black' }} onClick={handleProfileMenuOpen}>
             <PiUserListDuotone />

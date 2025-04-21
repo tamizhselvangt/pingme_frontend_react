@@ -1,6 +1,6 @@
-@import url('src/assets/css/onest.css');
-@import url('src/assets/css/clash-grotesk.css');
-@import url('src/assets/css/general-sans.css');
+@import url('../src/assets/css/onest.css');
+@import url('../src/assets/css/clash-grotesk.css');
+@import url('../src/assets/css/general-sans.css');
 
 :root {
   font-family: 'Onest Regular', 'Roboto', 'Arial', sans-serif;

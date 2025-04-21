@@ -17,7 +17,6 @@ export const AuthProvider = ({ children }) => {
   // Initiates Google Login
   const googleLogin = useGoogleLogin({
     onSuccess: (tokenResponse) => {
-      console.log('Google Login Success Response: ',tokenResponse);
       setUserToken(tokenResponse);
       setLoading(true);
     },
@@ -42,7 +41,6 @@ export const AuthProvider = ({ children }) => {
             }
           );
           const userData = res.data;
-          console.log('Google Login Success Response: ',userData);
           setCurrentUser({
             id: userData.sub,
             name: userData.name,
@@ -73,10 +71,10 @@ export const AuthProvider = ({ children }) => {
   // GitHub login mock
   const loginWithGithub = () => {
     setCurrentUser({
-      id: '2',
+      id: '3',
       name: 'Jane Smith',
-      email: 'jane@example.com',
-      photoURL: 'https://via.placeholder.com/150',
+      email: 'janesmith@email.com',
+      photoURL: 'https://i.pinimg.com/736x/df/bb/30/dfbb302fad975b17e5542db8c12b604e.jpg',
     });
     setUserType('user');
     navigate('/department-selection');
@@ -109,11 +107,11 @@ export const AuthProvider = ({ children }) => {
         email: currentUser.email,
         profileImage: currentUser.photoURL
       };
-      const response = await axios.post('http://localhost:8080/sign-out', authData);
+      const response = await axios.post(`${url}/sign-out`, authData);
       console.log('Logout Success Response: ',response);
       setCurrentUser(null);
     setUserType(null);
-    setMessages([]); // clear chat messages
+    setMessages([]); // clear chat messages   
     setUserDepartment(null);
     localStorage.removeItem('authToken');
     } catch (error) {

@@ -15,7 +15,7 @@ import {
   Alert
 } from '@mui/material';
 
-
+const url = "http://localhost:8080";
 const DepartmentSelection = () => {
   const navigate = useNavigate();
   const { currentUser, setUserDepartment, setCurrentUser } = useAuth();
@@ -28,7 +28,7 @@ const DepartmentSelection = () => {
   useEffect(() => {
     const fetchDepartments = async () => {
       try {
-        const response = await axios.get('http://localhost:8080/api/departments/all');
+        const response = await axios.get(`${url}/api/departments/all`);
         setDepartments(response.data);
         setLoading(false);
       } catch (err) {
@@ -62,8 +62,7 @@ const DepartmentSelection = () => {
         departmentId: selectedDepartment.id
       };
 
-      const response = await axios.post('http://localhost:8080/authenticate', authData);
-      console.log('Authentication Response: ',response);
+        const response = await axios.post(`${url}/authenticate`, authData);
       // Store the authentication token or user data
       if (response.data && response.data.token) {
         localStorage.setItem('authToken', response.data.token);
@@ -75,7 +74,6 @@ const DepartmentSelection = () => {
         profileImage: response.data.profileImage,
         departmentId: response.data.departmentId
       };
-      console.log('Authentication Response Data: ',responseData);
       // Update the user context with department info
       setCurrentUser(responseData);
       
@@ -175,7 +173,7 @@ const DepartmentSelection = () => {
     sx={{ mb: 4 }}
   >
     {departments.map((department) => (
-      <Grid item xs={12} sm={6} md={4} lg={3} key={department.id}>
+      <Grid  size={{ xs: 12, sm: 6, md: 4, lg: 3 }} key={department.id}>
         <Card
           sx={{
             height: '100%',

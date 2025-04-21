@@ -38,7 +38,7 @@ const Login = () => {
       left: 0,
       right: 0,
       zIndex: 1200, // higher than most elements
-      backgroundColor: '#F8F9FB',
+      backgroundColor: '#EDF1F4',
       padding: 2,
     }}
     >

@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { Box, IconButton } from '@mui/material';
+import { Box, IconButton, Button } from '@mui/material';
 import CloseIcon from '@mui/icons-material/Close';
 import AudioPlayer from 'react-h5-audio-player';
 import 'react-h5-audio-player/lib/styles.css';
@@ -141,6 +141,47 @@ function MediaMessage({ mediaUrl, mediaType, isYou }) {
       </Box>
     );
   }
+
+  if (mediaType?.startsWith( 'application/pdf')) {
+    return (
+      <Box sx={commonStyles}>
+        <Button 
+          variant="outlined" 
+          onClick={() => window.open(mediaUrl, '_blank')}
+        >
+          📄 Open PDF
+        </Button>
+      </Box>
+    );
+  }
+  
+  if (mediaType?.startsWith('application/msword')|| 
+      mediaType === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+    return (
+      <Box sx={commonStyles}>
+        <Button 
+          variant="outlined" 
+          component="a"
+          href={mediaUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          download
+        >
+          📝 Download DOC
+        </Button>
+      </Box>
+    );
+  }
+  
+  // If it's not a known type, fallback:
+  return (
+    <Box sx={commonStyles}>
+      <Typography variant="body2">
+        📎 <a href={mediaUrl} download>Download File</a>
+      </Typography>
+    </Box>
+  );
+  
 
   return 'Unsupported Media Type';
 }

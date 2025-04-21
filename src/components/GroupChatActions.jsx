@@ -4,7 +4,7 @@ import { TbLayoutGridAdd } from 'react-icons/tb';
 import { useState } from 'react';
 import { useChat } from '../context/ChatContext';
 
-export default function ChatActions() {
+export default function GroupChatActions() {
   const { 
     contacts,
     createChatGroup,

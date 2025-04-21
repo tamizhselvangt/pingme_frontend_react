@@ -9,32 +9,14 @@ import {
   CardContent, 
   Typography, 
   Container,
-  TextField,
-  Alert,
   Grid
 } from '@mui/material';
-import AdminPanelSettingsIcon from '@mui/icons-material/AdminPanelSettings';
-import PersonIcon from '@mui/icons-material/Person';
 import { PiChalkboardTeacherDuotone } from "react-icons/pi";
 import { PiStudentDuotone } from "react-icons/pi";
 import pingmeImage from '../assets/pingme.png';
 
 const Welcome = () => {
   const navigate = useNavigate();
-  const [showAdminLogin, setShowAdminLogin] = useState(false);
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
-  const [error, setError] = useState('');
-
-  const handleAdminLogin = (e) => {
-    e.preventDefault();
-    // Mock admin login - in a real app, this would call the auth context
-    if (email === 'admin@example.com' && password === 'password') {
-      navigate('/home');
-    } else {
-      setError('Invalid credentials');
-    }
-  };
 
   return (
     <Container   maxWidth={false}
@@ -58,10 +40,10 @@ const Welcome = () => {
         }}
       >
         <Grid container spacing={4} alignItems="center" justifyContent="center">
-            <Grid item xs={12} md={6}>
+            <Grid  size={{ xs: 5, sm: 4, md: 3, lg: 3 }}>
     <img src={pingmeImage} alt="PingMe Logo" style={{ width: '100%', maxWidth: 150 }} />
   </Grid>
-  <Grid item xs={12} md={6}>
+  <Grid  size={{ xs: 12, sm: 12, md: 6 , lg: 12 }}>
     <Typography variant="h3" component="h1" align="center" fontFamily="ClashGrotesk-Semibold"
     sx={{
       background: 'linear-gradient(90deg, #8BBCB9, #EF4955, #ff8a00)',
@@ -88,90 +70,47 @@ const Welcome = () => {
           Choose your login type
         </Typography>
 
-        {!showAdminLogin ? (
-          <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
-            <Card sx={{
-    width: 200,
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    '&:hover': {
-      transform: 'scale(1.05)',
-      boxShadow: 6,
-      backgroundColor: '#F6FAFD',
-    },
-  }}
-   onClick={() => setShowAdminLogin(true)}>
-              <CardContent sx={{ textAlign: 'center' }}>
-               
-                <PiChalkboardTeacherDuotone  style={{
-                        fontSize: 60,
-                        color: '#1976d2', // manually set to match theme
-                        marginBottom: '16px'
-                    }}/>
-                <Typography variant="h6" fontFamily="ClashGrotesk-Medium">Admin Login</Typography>
-              </CardContent>
-            </Card>
-            <Card  sx={{
-    width: 200,
-    cursor: 'pointer',
-    transition: 'transform 0.2s ease, box-shadow 0.2s ease',
-    '&:hover': {
-      transform: 'scale(1.05)',
-      boxShadow: 6,
-      backgroundColor: '#f0f4f3',
-    },
-  }} onClick={() => navigate('/login')}>
-              <CardContent sx={{ textAlign: 'center' }}>
-              
-              <PiStudentDuotone style={{
-                        fontSize: 60,
-                        color: '#8BBCB9', // manually set to match theme
-                        marginBottom: '16px'
-                    }}/>
-                <Typography variant="h6" fontFamily="ClashGrotesk-Medium">User Login</Typography>
-              </CardContent>
-            </Card>
-          </Box>
-        ) : (
-          <Container
-          maxWidth='sm'  >
-          <Card sx={{ width: '100%', mt: 4 }}>
-            <CardContent>
-              <Typography variant="h5" gutterBottom align="center">
-                Admin Login
-              </Typography>
-              {error && <Alert severity="error" sx={{ mb: 2 }}>{error}</Alert>}
-              <form onSubmit={handleAdminLogin}>
-                <TextField
-                  fullWidth
-                  label="Email"
-                  variant="outlined"
-                  margin="normal"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-                <TextField
-                  fullWidth
-                  label="Password"
-                  type="password"
-                  variant="outlined"
-                  margin="normal"
-                  value={password}
-                  onChange={(e) => setPassword(e.target.value)}
-                />
-                <Box sx={{ display: 'flex', justifyContent: 'space-between', mt: 2 }}>
-                  <Button variant="outlined" onClick={() => setShowAdminLogin(false)}>
-                    Back
-                  </Button>
-                  <Button variant="contained" type="submit">
-                    Login
-                  </Button>
-                </Box>
-              </form>
+        <Box sx={{ display: 'flex', gap: 2, mt: 4 }}>
+          <Card sx={{
+            width: 200,
+            cursor: 'pointer',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            '&:hover': {
+              transform: 'scale(1.05)',
+              boxShadow: 6,
+              backgroundColor: '#F6FAFD',
+            },
+          }}
+          onClick={() => navigate('/admin/login')}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <PiChalkboardTeacherDuotone style={{
+                fontSize: 60,
+                color: '#1976d2',
+                marginBottom: '16px'
+              }}/>
+              <Typography variant="h6" fontFamily="ClashGrotesk-Medium">Admin Login</Typography>
             </CardContent>
           </Card>
-          </Container>
-        )}
+          <Card sx={{
+            width: 200,
+            cursor: 'pointer',
+            transition: 'transform 0.2s ease, box-shadow 0.2s ease',
+            '&:hover': {
+              transform: 'scale(1.05)',
+              boxShadow: 6,
+              backgroundColor: '#f0f4f3',
+            },
+          }} onClick={() => navigate('/login')}>
+            <CardContent sx={{ textAlign: 'center' }}>
+              <PiStudentDuotone style={{
+                fontSize: 60,
+                color: '#8BBCB9',
+                marginBottom: '16px'
+              }}/>
+              <Typography variant="h6" fontFamily="ClashGrotesk-Medium">User Login</Typography>
+            </CardContent>
+          </Card>
+        </Box>
       </Box>
       
     </Container>
