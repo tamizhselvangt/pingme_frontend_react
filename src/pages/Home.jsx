@@ -230,6 +230,7 @@ const toggleSidebar = () => {
           // Send the message with the audio file
           sendMessage('',recordedAudioFile, recordedAudioFile.type);
           setRecordedAudioFile(null);
+          setSelectedFile(null);
           setUploadProgress(0);
         }
 
@@ -241,6 +242,7 @@ const toggleSidebar = () => {
     }
     setUploadingAudio(false);
     setRecordedAudioFile(null);
+    setSelectedFile(null);
   };
   
   const displayName = () => {

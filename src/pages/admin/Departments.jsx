@@ -21,8 +21,8 @@ import { useSnackbar } from 'notistack';
 import axios from 'axios';
 
 const Departments = () => {
-
-  const url = "http://51.21.248.13:8080";
+  // const url = "http://51.21.248.13:8080";
+  const url = "http://localhost:8080";
   const [departments, setDepartments] = useState([]);
   const [openDialog, setOpenDialog] = useState(false);
   const [newDepartment, setNewDepartment] = useState('');

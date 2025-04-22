@@ -9,7 +9,8 @@ import { showNewUserNotification } from '../components/showNewUserNotification';
 
 const ChatContext = createContext();
 
-const url = "http://51.21.248.13:8080";
+// const url = "http://51.21.248.13:8080";
+const url = "http://localhost:8080";
 
 export const useChat = () => useContext(ChatContext);
 
@@ -71,10 +72,10 @@ export const ChatProvider = ({ children }) => {
 
             const senderId = body.senderId;
             if(body.messageType === "GROUP"){
-              setGroupMessages((prev) => ({
-                ...prev,
-                [senderId]: [...(prev[senderId] || []), incomingMessage],
-              }));
+              // setGroupMessages((prev) => ({
+              //   ...prev,
+              //   [senderId]: [...(prev[senderId] || []), incomingMessage],
+              // }));
             }else{
               setMessages((prev) => ({
                 ...prev,
@@ -361,10 +362,10 @@ export const ChatProvider = ({ children }) => {
           };
   
           if (messageType === "GROUP") {
-            setGroupMessages(prev => ({
-              ...prev,
-              [recipientId]: [...(prev[recipientId] || []), sentMessage],
-            }));
+            // setGroupMessages(prev => ({
+            //   ...prev,
+            //   [recipientId]: [...(prev[recipientId] || []), sentMessage],
+            // }));
           } else {
             setMessages(prev => ({
               ...prev,
