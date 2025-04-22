@@ -15,7 +15,7 @@ import {
   Alert
 } from '@mui/material';
 
-const url = "http://localhost:8080";
+const url = "http://51.21.248.13:8080";
 const DepartmentSelection = () => {
   const navigate = useNavigate();
   const { currentUser, setUserDepartment, setCurrentUser } = useAuth();

@@ -9,7 +9,7 @@ import { showNewUserNotification } from '../components/showNewUserNotification';
 
 const ChatContext = createContext();
 
-const url = "http://localhost:8080";
+const url = "http://51.21.248.13:8080";
 
 export const useChat = () => useContext(ChatContext);
 

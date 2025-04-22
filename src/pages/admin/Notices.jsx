@@ -9,7 +9,7 @@ import { useSnackbar } from 'notistack';
 import axios from 'axios';
 import { CgAttachment } from 'react-icons/cg';
 
-const url = "http://localhost:8080";
+const url = "http://51.21.248.13:8080";
 
 const Notices = () => {
   const [notices, setNotices] = useState([]);
